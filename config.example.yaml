@@ -1,23 +1,39 @@
+# OpenForge Configuration
+# All string values support env var expansion:
+#   $VAR, ${VAR}, ${VAR:-default}, $(command)
+
 server:
-  host: "127.0.0.1"
-  port: 9090
-  timeout: 30
+  host: "${OPENFORGE_HOST:-127.0.0.1}"
+  port: ${OPENFORGE_PORT:-9090}
+  timeout: ${OPENFORGE_TIMEOUT:-30}
 
 models:
-  path: "./models"
-  default: ""
-  device: "auto"
+  path: "${OPENFORGE_MODEL_PATH:-./models}"
+  default: "${OPENFORGE_DEFAULT_MODEL:-}"
+  device: "${OPENFORGE_DEVICE:-auto}"
 
 cache:
-  enabled: true
-  backend: "memory"
-  path: "./data/cache"
-  max_size: 1073741824
+  enabled: ${OPENFORGE_CACHE_ENABLED:-true}
+  backend: "${OPENFORGE_CACHE_BACKEND:-memory}"
+  path: "${OPENFORGE_CACHE_PATH:-./data/cache}"
+  max_size: ${OPENFORGE_CACHE_MAX_SIZE:-1073741824}
+
+devices:
+  default: "${OPENFORGE_DEVICE:-auto}"
+  chat: "${OPENFORGE_DEVICE_CHAT:-}"
+  embedding: "${OPENFORGE_DEVICE_EMBEDDING:-}"
+  rerank: "${OPENFORGE_DEVICE_RERANK:-}"
+
+benchmark:
+  enabled: ${OPENFORGE_BENCHMARK_ENABLED:-false}
+  iterations: ${OPENFORGE_BENCHMARK_ITERATIONS:-3}
+  prompt: "${OPENFORGE_BENCHMARK_PROMPT:-The quick brown fox jumps over the lazy dog}"
+  max_tokens: ${OPENFORGE_BENCHMARK_MAX_TOKENS:-50}
 
 logging:
-  level: "info"
-  format: "json"
-  output: "stdout"
+  level: "${OPENFORGE_LOG_LEVEL:-info}"
+  format: "${OPENFORGE_LOG_FORMAT:-json}"
+  output: "${OPENFORGE_LOG_OUTPUT:-stdout}"
 
 telemetry:
-  enabled: false
+  enabled: ${OPENFORGE_TELEMETRY_ENABLED:-false}

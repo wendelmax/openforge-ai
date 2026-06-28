@@ -132,3 +132,71 @@ func TestDeviceConfigDefaults(t *testing.T) {
 		t.Errorf("expected auto, got %q", cfg.Devices.Default)
 	}
 }
+
+func TestExpandValue_SimpleVar(t *testing.T) {
+	t.Setenv("TEST_MODEL", "phi-3-mini")
+	got := expandValue("${TEST_MODEL}")
+	assert.Equal(t, "phi-3-mini", got)
+}
+
+func TestExpandValue_Default(t *testing.T) {
+	t.Setenv("TEST_EXISTS", "gpu")
+	got := expandValue("${TEST_EXISTS:-cpu}")
+	assert.Equal(t, "gpu", got)
+}
+
+func TestExpandValue_DefaultFallback(t *testing.T) {
+	got := expandValue("${NONEXISTENT_VAR_XYZ:-cpu}")
+	assert.Equal(t, "cpu", got)
+}
+
+func TestExpandValue_DollarSign(t *testing.T) {
+	// $$ is a literal $ in env var expansion context
+	got := expandValue("$$notavar")
+	assert.Equal(t, "$notavar", got)
+}
+
+func TestExpandValue_CmdSubst(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping shell command test in short mode")
+	}
+	got := expandValue("$(echo hello)")
+	assert.Equal(t, "hello", got)
+}
+
+func TestExpandValue_NoDollar(t *testing.T) {
+	got := expandValue("plain string")
+	assert.Equal(t, "plain string", got)
+}
+
+func TestContainsDollar(t *testing.T) {
+	assert.True(t, containsDollar("$VAR"))
+	assert.True(t, containsDollar("${VAR}"))
+	assert.False(t, containsDollar("plain"))
+	assert.False(t, containsDollar(""))
+}
+
+func TestLoad_WithEnvVarExpansion(t *testing.T) {
+	t.Setenv("OF_HOST", "0.0.0.0")
+	t.Setenv("OF_PORT", "9090")
+
+	dir := t.TempDir()
+	cfgPath := dir + "/config.yaml"
+	content := []byte(`
+server:
+  host: "${OF_HOST}"
+  port: ${OF_PORT}
+models:
+  device: "${OF_DEVICE:-cpu}"
+  path: "${OF_MODEL_PATH:-./models}"
+`)
+	err := os.WriteFile(cfgPath, content, 0644)
+	require.NoError(t, err)
+
+	cfg, err := Load(cfgPath)
+	require.NoError(t, err)
+	assert.Equal(t, "0.0.0.0", cfg.Server.Host)
+	assert.Equal(t, 9090, cfg.Server.Port)
+	assert.Equal(t, "cpu", cfg.Models.Device)
+	assert.Equal(t, "./models", cfg.Models.Path)
+}

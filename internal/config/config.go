@@ -2,9 +2,12 @@
 package config
 
 import (
+	"bytes"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"strings"
 
 	"github.com/spf13/viper"
 )
@@ -166,10 +169,110 @@ func Load(path string) (*Config, error) {
 		}
 	}
 
+	expandConfig(v)
+
 	var cfg Config
 	if err := v.Unmarshal(&cfg); err != nil {
 		return nil, fmt.Errorf("unmarshal config: %w", err)
 	}
 
 	return &cfg, nil
+}
+
+// expandConfig walks all viper string values and expands env vars and shell commands.
+// Supports: $VAR, ${VAR}, ${VAR:-default}, $(command).
+// Config files are trusted code — $(command) runs arbitrary shell commands.
+func expandConfig(v *viper.Viper) {
+	for _, key := range v.AllKeys() {
+		val := v.Get(key)
+		if str, ok := val.(string); ok && containsDollar(str) {
+			v.Set(key, expandValue(str))
+		}
+	}
+}
+
+func containsDollar(s string) bool {
+	return strings.Contains(s, "$")
+}
+
+func expandValue(s string) string {
+	s = expandCmdSubst(s)
+	s = expandDollarVars(s)
+	return s
+}
+
+// expandDollarVars replaces $VAR, ${VAR}, and ${VAR:-default} patterns.
+// $$ is left as a literal $ (unlike os.Expand which treats $$ as $).
+func expandDollarVars(s string) string {
+	var buf bytes.Buffer
+	for i := 0; i < len(s); i++ {
+		if s[i] == '$' && i+1 < len(s) {
+			if s[i+1] == '$' {
+				buf.WriteByte('$')
+				i++
+				continue
+			}
+			if s[i+1] == '{' {
+				j := strings.IndexByte(s[i+2:], '}')
+				if j < 0 {
+					buf.WriteByte(s[i])
+					continue
+				}
+				name := s[i+2 : i+2+j]
+				buf.WriteString(envVarMapping(name))
+				i += 2 + j
+				continue
+			}
+			// $NAME (simple env var)
+			j := i + 1
+			for j < len(s) && isEnvNameChar(s[j]) {
+				j++
+			}
+			if j > i+1 {
+				buf.WriteString(os.Getenv(s[i+1 : j]))
+				i = j - 1
+				continue
+			}
+		}
+		buf.WriteByte(s[i])
+	}
+	return buf.String()
+}
+
+func isEnvNameChar(c byte) bool {
+	return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_'
+}
+
+func envVarMapping(name string) string {
+	if idx := strings.Index(name, ":-"); idx >= 0 {
+		varName := name[:idx]
+		defaultVal := name[idx+2:]
+		if v := os.Getenv(varName); v != "" {
+			return v
+		}
+		return defaultVal
+	}
+	return os.Getenv(name)
+}
+
+func expandCmdSubst(s string) string {
+	var buf bytes.Buffer
+	for i := 0; i < len(s); i++ {
+		if s[i] == '$' && i+2 < len(s) && s[i+1] == '(' {
+			j := strings.IndexByte(s[i+2:], ')')
+			if j < 0 {
+				buf.WriteByte(s[i])
+				continue
+			}
+			cmd := s[i+2 : i+2+j]
+			out, err := exec.Command("sh", "-c", cmd).Output()
+			if err == nil {
+				buf.WriteString(strings.TrimRight(string(out), "\n\r"))
+			}
+			i += 2 + j
+		} else {
+			buf.WriteByte(s[i])
+		}
+	}
+	return buf.String()
 }
