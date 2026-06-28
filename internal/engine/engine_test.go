@@ -60,8 +60,16 @@ func TestNewEngine(t *testing.T) {
 	rt := &mockRuntime{}
 	e := New(rt)
 	assert.NotNil(t, e)
-	assert.NotNil(t, e.sessions)
-	assert.Equal(t, rt, e.runtime)
+	assert.NotNil(t, e.store)
+	assert.Equal(t, rt, e.Runtime())
+}
+
+func TestNewWithStore(t *testing.T) {
+	rt := &mockRuntime{}
+	store := NewMemorySessionStore()
+	e := NewWithStore(rt, store)
+	assert.NotNil(t, e)
+	assert.Equal(t, store, e.Store())
 }
 
 func TestCreateSession(t *testing.T) {
@@ -135,11 +143,15 @@ func TestClearSessions(t *testing.T) {
 
 	e.CreateSession(ctx, "model-1")
 	e.CreateSession(ctx, "model-2")
-	assert.Len(t, e.sessions, 2)
+
+	list, _ := e.store.List(ctx)
+	assert.Len(t, list, 2)
 
 	err := e.ClearSessions(ctx)
 	assert.NoError(t, err)
-	assert.Len(t, e.sessions, 0)
+
+	list, _ = e.store.List(ctx)
+	assert.Len(t, list, 0)
 }
 
 func TestAddMessage(t *testing.T) {
@@ -264,5 +276,7 @@ func TestCreateSessionMultiple(t *testing.T) {
 	s1, _ := e.CreateSession(ctx, "model-a")
 	s2, _ := e.CreateSession(ctx, "model-b")
 	assert.NotEqual(t, s1.ID, s2.ID, "session IDs should be unique")
-	assert.Len(t, e.sessions, 2)
+
+	list, _ := e.store.List(ctx)
+	assert.Len(t, list, 2)
 }

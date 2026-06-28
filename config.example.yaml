@@ -18,6 +18,10 @@ cache:
   path: "${OPENFORGE_CACHE_PATH:-./data/cache}"
   max_size: ${OPENFORGE_CACHE_MAX_SIZE:-1073741824}
 
+session:
+  backend: "${OPENFORGE_SESSION_BACKEND:-memory}"
+  path: "${OPENFORGE_SESSION_PATH:-./data/sessions}"
+
 devices:
   default: "${OPENFORGE_DEVICE:-auto}"
   chat: "${OPENFORGE_DEVICE_CHAT:-}"

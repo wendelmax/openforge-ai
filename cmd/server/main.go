@@ -77,7 +77,12 @@ func main() {
 		}
 	}
 
-	eng := engine.New(provider.Runtime())
+	store, err := engine.NewStoreFromConfig(cfg)
+	if err != nil {
+		slog.Error("failed to create session store", "error", err)
+		os.Exit(1)
+	}
+	eng := engine.NewWithStore(provider.Runtime(), store)
 
 	srv := server.New(eng, cfg)
 

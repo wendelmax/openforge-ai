@@ -54,6 +54,12 @@ type TelemetryConfig struct {
 	Enabled bool `mapstructure:"enabled"`
 }
 
+// SessionConfig configures session persistence.
+type SessionConfig struct {
+	Backend string `mapstructure:"backend"`
+	Path    string `mapstructure:"path"`
+}
+
 // BenchmarkConfig controls startup benchmark behavior.
 type BenchmarkConfig struct {
 	Enabled    bool   `mapstructure:"enabled"`
@@ -68,6 +74,7 @@ type Config struct {
 	Models    ModelsConfig    `mapstructure:"models"`
 	Cache     CacheConfig     `mapstructure:"cache"`
 	Devices   DeviceConfig    `mapstructure:"devices"`
+	Session   SessionConfig   `mapstructure:"session"`
 	Benchmark BenchmarkConfig `mapstructure:"benchmark"`
 	Logging   LoggingConfig   `mapstructure:"logging"`
 	Telemetry TelemetryConfig `mapstructure:"telemetry"`
@@ -101,6 +108,10 @@ func Default() *Config {
 			Chat:      "",
 			Embedding: "",
 			Rerank:    "",
+		},
+		Session: SessionConfig{
+			Backend: "memory",
+			Path:    "./data/sessions",
 		},
 		Benchmark: BenchmarkConfig{
 			Enabled:    false,
@@ -136,6 +147,8 @@ func Load(path string) (*Config, error) {
 	v.SetDefault("devices.chat", "")
 	v.SetDefault("devices.embedding", "")
 	v.SetDefault("devices.rerank", "")
+	v.SetDefault("session.backend", "memory")
+	v.SetDefault("session.path", "./data/sessions")
 	v.SetDefault("benchmark.enabled", false)
 	v.SetDefault("benchmark.iterations", 3)
 	v.SetDefault("benchmark.prompt", "The quick brown fox jumps over the lazy dog")

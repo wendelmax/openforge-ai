@@ -87,7 +87,11 @@ Models are loaded from the configured model directory.`,
 			}
 		}
 
-		eng := engine.New(provider.Runtime())
+		store, err := engine.NewStoreFromConfig(cfg)
+		if err != nil {
+			return fmt.Errorf("session store: %w", err)
+		}
+		eng := engine.NewWithStore(provider.Runtime(), store)
 		srv := server.New(eng, cfg)
 
 		go func() {

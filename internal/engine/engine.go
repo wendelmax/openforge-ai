@@ -13,27 +13,40 @@ import (
 
 // Session represents a chat session with messages and a model assignment.
 type Session struct {
-	ID        string    `json:"id"`
-	ModelID   string    `json:"model_id"`
+	ID        string            `json:"id"`
+	ModelID   string            `json:"model_id"`
 	Messages  []runtime.Message `json:"messages"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
-	MaxTokens int       `json:"max_tokens,omitempty"`
+	CreatedAt time.Time         `json:"created_at"`
+	UpdatedAt time.Time         `json:"updated_at"`
+	MaxTokens int               `json:"max_tokens,omitempty"`
 }
 
 // Engine manages chat sessions and coordinates with the AI runtime.
 type Engine struct {
-	mu       sync.RWMutex
-	runtime  runtime.Runtime
-	sessions map[string]*Session
+	mu      sync.RWMutex
+	runtime runtime.Runtime
+	store   SessionStore
 }
 
-// New creates a new Engine with the given runtime.
+// New creates a new Engine with an in-memory session store.
 func New(rt runtime.Runtime) *Engine {
 	return &Engine{
-		runtime:  rt,
-		sessions: make(map[string]*Session),
+		runtime: rt,
+		store:   NewMemorySessionStore(),
 	}
+}
+
+// NewWithStore creates a new Engine with the given session store.
+func NewWithStore(rt runtime.Runtime, store SessionStore) *Engine {
+	return &Engine{
+		runtime: rt,
+		store:   store,
+	}
+}
+
+// Store returns the session store used by the engine.
+func (e *Engine) Store() SessionStore {
+	return e.store
 }
 
 // Runtime returns the underlying runtime used by the engine.
@@ -53,7 +66,9 @@ func (e *Engine) CreateSession(ctx context.Context, modelID string) (*Session, e
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 	}
-	e.sessions[session.ID] = session
+	if err := e.store.Create(ctx, session); err != nil {
+		return nil, fmt.Errorf("store create: %w", err)
+	}
 	return session, nil
 }
 
@@ -61,32 +76,31 @@ func (e *Engine) CreateSession(ctx context.Context, modelID string) (*Session, e
 func (e *Engine) GetSession(ctx context.Context, sessionID string) (*Session, error) {
 	e.mu.RLock()
 	defer e.mu.RUnlock()
-
-	session, ok := e.sessions[sessionID]
-	if !ok {
-		return nil, fmt.Errorf("session not found: %s", sessionID)
-	}
-	return session, nil
+	return e.store.Get(ctx, sessionID)
 }
 
 // DeleteSession removes a session by ID, returning an error if not found.
 func (e *Engine) DeleteSession(ctx context.Context, sessionID string) error {
 	e.mu.Lock()
 	defer e.mu.Unlock()
-
-	if _, ok := e.sessions[sessionID]; !ok {
-		return fmt.Errorf("session not found: %s", sessionID)
-	}
-	delete(e.sessions, sessionID)
-	return nil
+	return e.store.Delete(ctx, sessionID)
 }
 
-// ClearSessions removes all sessions from the engine.
+// ClearSessions removes all sessions from the store.
 func (e *Engine) ClearSessions(ctx context.Context) error {
 	e.mu.Lock()
 	defer e.mu.Unlock()
-
-	e.sessions = make(map[string]*Session)
+	// For MemorySessionStore, List+Delete works.
+	// For stores that support batch clear, we could add a Clear method.
+	sessions, err := e.store.List(ctx)
+	if err != nil {
+		return err
+	}
+	for _, s := range sessions {
+		if err := e.store.Delete(ctx, s.ID); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
@@ -95,9 +109,9 @@ func (e *Engine) AddMessage(ctx context.Context, sessionID string, msg runtime.M
 	e.mu.Lock()
 	defer e.mu.Unlock()
 
-	session, ok := e.sessions[sessionID]
-	if !ok {
-		return nil, fmt.Errorf("session not found: %s", sessionID)
+	session, err := e.store.Get(ctx, sessionID)
+	if err != nil {
+		return nil, err
 	}
 
 	session.Messages = append(session.Messages, msg)
@@ -117,6 +131,9 @@ func (e *Engine) AddMessage(ctx context.Context, sessionID string, msg runtime.M
 		}
 	}
 
+	if err := e.store.Update(ctx, session); err != nil {
+		return nil, fmt.Errorf("store update: %w", err)
+	}
 	return session, nil
 }
 
@@ -136,5 +153,6 @@ func (e *Engine) BuildPrompt(ctx context.Context, sessionID string) (string, err
 
 // Close shuts down the engine and its underlying runtime.
 func (e *Engine) Close(ctx context.Context) error {
+	e.store.Close(ctx)
 	return e.runtime.Close(ctx)
 }
