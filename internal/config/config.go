@@ -54,6 +54,21 @@ type TelemetryConfig struct {
 	Enabled bool `mapstructure:"enabled"`
 }
 
+// PermissionRuleConfig defines a permission rule.
+type PermissionRuleConfig struct {
+	Scope    string `mapstructure:"scope"`
+	Name     string `mapstructure:"name"`
+	Decision string `mapstructure:"decision"`
+	Level    string `mapstructure:"level,omitempty"`
+}
+
+// PermissionsConfig defines permission rules for tool access.
+type PermissionsConfig struct {
+	DefaultDecision string                `mapstructure:"default_decision"`
+	DefaultLevel    string                `mapstructure:"default_level"`
+	Rules           []PermissionRuleConfig `mapstructure:"rules,omitempty"`
+}
+
 // MCServerConfig defines how to connect to an MCP tool server.
 type MCServerConfig struct {
 	Command string   `mapstructure:"command"`
@@ -85,6 +100,7 @@ type Config struct {
 	Benchmark BenchmarkConfig `mapstructure:"benchmark"`
 	Logging   LoggingConfig             `mapstructure:"logging"`
 	MCP       map[string]MCServerConfig `mapstructure:"mcp,omitempty"`
+	Permissions PermissionsConfig       `mapstructure:"permissions,omitempty"`
 	Telemetry TelemetryConfig `mapstructure:"telemetry"`
 }
 

@@ -42,6 +42,15 @@ logging:
 telemetry:
   enabled: ${OPENFORGE_TELEMETRY_ENABLED:-false}
 
+permissions:
+  # default_decision: ask   # allow | deny | ask
+  # default_level: once     # once | session | forever
+  # rules:
+  #   - scope: "mcp"
+  #     name: "*"
+  #     decision: ask
+  #     level: session
+
 # MCP tool servers — each server exposes tools callable from skill pipelines.
 # mcp:
 #   brave-search:

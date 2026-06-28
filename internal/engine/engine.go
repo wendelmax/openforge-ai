@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/openforge-ai/openforge/internal/skill"
 	"github.com/openforge-ai/openforge/runtime"
 )
 
@@ -23,30 +24,38 @@ type Session struct {
 
 // Engine manages chat sessions and coordinates with the AI runtime.
 type Engine struct {
-	mu      sync.RWMutex
-	runtime runtime.Runtime
-	store   SessionStore
+	mu       sync.RWMutex
+	runtime  runtime.Runtime
+	store    SessionStore
+	executor *skill.Executor
 }
 
 // New creates a new Engine with an in-memory session store.
 func New(rt runtime.Runtime) *Engine {
 	return &Engine{
-		runtime: rt,
-		store:   NewMemorySessionStore(),
+		runtime:  rt,
+		store:    NewMemorySessionStore(),
+		executor: skill.NewExecutor(rt),
 	}
 }
 
 // NewWithStore creates a new Engine with the given session store.
 func NewWithStore(rt runtime.Runtime, store SessionStore) *Engine {
 	return &Engine{
-		runtime: rt,
-		store:   store,
+		runtime:  rt,
+		store:    store,
+		executor: skill.NewExecutor(rt),
 	}
 }
 
 // Store returns the session store used by the engine.
 func (e *Engine) Store() SessionStore {
 	return e.store
+}
+
+// SkillExecutor returns the skill executor used by the engine.
+func (e *Engine) SkillExecutor() *skill.Executor {
+	return e.executor
 }
 
 // Runtime returns the underlying runtime used by the engine.
