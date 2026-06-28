@@ -54,6 +54,13 @@ type TelemetryConfig struct {
 	Enabled bool `mapstructure:"enabled"`
 }
 
+// MCServerConfig defines how to connect to an MCP tool server.
+type MCServerConfig struct {
+	Command string   `mapstructure:"command"`
+	Args    []string `mapstructure:"args,omitempty"`
+	Env     []string `mapstructure:"env,omitempty"`
+}
+
 // SessionConfig configures session persistence.
 type SessionConfig struct {
 	Backend string `mapstructure:"backend"`
@@ -76,7 +83,8 @@ type Config struct {
 	Devices   DeviceConfig    `mapstructure:"devices"`
 	Session   SessionConfig   `mapstructure:"session"`
 	Benchmark BenchmarkConfig `mapstructure:"benchmark"`
-	Logging   LoggingConfig   `mapstructure:"logging"`
+	Logging   LoggingConfig             `mapstructure:"logging"`
+	MCP       map[string]MCServerConfig `mapstructure:"mcp,omitempty"`
 	Telemetry TelemetryConfig `mapstructure:"telemetry"`
 }
 

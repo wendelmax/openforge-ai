@@ -41,3 +41,12 @@ logging:
 
 telemetry:
   enabled: ${OPENFORGE_TELEMETRY_ENABLED:-false}
+
+# MCP tool servers — each server exposes tools callable from skill pipelines.
+# mcp:
+#   brave-search:
+#     command: npx
+#     args: ["-y", "@anthropic-ai/claude-code-mcp", "brave-search"]
+#   filesystem:
+#     command: npx
+#     args: ["-y", "@modelcontextprotocol/server-filesystem", "./"]

@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"sync"
 	"text/template"
 
 	"github.com/openforge-ai/openforge/runtime"
@@ -12,12 +13,35 @@ import (
 
 // Executor runs skill pipelines by executing each step in order.
 type Executor struct {
+	mu      sync.RWMutex
 	runtime runtime.Runtime
+	tools   map[string]ToolFunc
 }
 
 // NewExecutor creates a new Executor backed by the given runtime.
 func NewExecutor(rt runtime.Runtime) *Executor {
-	return &Executor{runtime: rt}
+	return &Executor{
+		runtime: rt,
+		tools:   make(map[string]ToolFunc),
+	}
+}
+
+// RegisterTool registers a tool function by name for use in tool steps.
+func (e *Executor) RegisterTool(name string, fn ToolFunc) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	e.tools[name] = fn
+}
+
+// RegisteredTools returns the names of all registered tools.
+func (e *Executor) RegisteredTools() []string {
+	e.mu.RLock()
+	defer e.mu.RUnlock()
+	names := make([]string, 0, len(e.tools))
+	for name := range e.tools {
+		names = append(names, name)
+	}
+	return names
 }
 
 // Execute runs all steps in the skill pipeline, passing outputs between steps.
@@ -58,9 +82,39 @@ func (e *Executor) executeStep(ctx context.Context, step Step, inputs map[string
 		return e.executeFormat(step, inputs)
 	case StepCond:
 		return e.executeCondition(step, inputs)
+	case StepTool:
+		return e.executeTool(ctx, step, inputs)
 	default:
 		return nil, fmt.Errorf("unknown step type: %s", step.Type)
 	}
+}
+
+func (e *Executor) executeTool(ctx context.Context, step Step, inputs map[string]interface{}) (interface{}, error) {
+	toolName := step.Model
+	if toolName == "" {
+		return nil, fmt.Errorf("tool step requires model (tool name) field")
+	}
+
+	e.mu.RLock()
+	fn, ok := e.tools[toolName]
+	e.mu.RUnlock()
+	if !ok {
+		return nil, fmt.Errorf("tool not registered: %s", toolName)
+	}
+
+	args := make(map[string]interface{})
+	if step.Config != nil {
+		for k, v := range step.Config {
+			args[k] = v
+		}
+	}
+	for k, v := range inputs {
+		if k != "step" && k != "inputs" {
+			args[k] = v
+		}
+	}
+
+	return fn(ctx, args)
 }
 
 func (e *Executor) executePrompt(ctx context.Context, step Step, inputs map[string]interface{}) (string, error) {

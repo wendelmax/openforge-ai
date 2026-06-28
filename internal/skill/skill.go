@@ -17,6 +17,8 @@ const (
 	StepFormat StepType = "format"
 	// StepCond conditionally executes steps (not yet implemented).
 	StepCond StepType = "condition"
+	// StepTool calls an MCP tool.
+	StepTool StepType = "tool"
 )
 
 // Step is a single pipeline step within a skill.
@@ -49,3 +51,6 @@ type Skill struct {
 type ExecutorInterface interface {
 	Execute(ctx context.Context, skill Skill, inputs map[string]interface{}) (map[string]interface{}, error)
 }
+
+// ToolFunc is a function that can be called from a tool step.
+type ToolFunc func(ctx context.Context, args map[string]interface{}) (interface{}, error)

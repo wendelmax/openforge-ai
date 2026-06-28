@@ -762,3 +762,109 @@ func TestExecuteRerank_EmptyQuery(t *testing.T) {
 	})
 	assert.Error(t, err)
 }
+
+func TestRegisterTool(t *testing.T) {
+	ex := NewExecutor(&mockRuntime{})
+	ex.RegisterTool("test_tool", func(ctx context.Context, args map[string]interface{}) (interface{}, error) {
+		return "result", nil
+	})
+	assert.Contains(t, ex.RegisteredTools(), "test_tool")
+}
+
+func TestExecuteToolStep(t *testing.T) {
+	ex := NewExecutor(&mockRuntime{})
+	ex.RegisterTool("greeter", func(ctx context.Context, args map[string]interface{}) (interface{}, error) {
+		return "Hello, " + args["name"].(string) + "!", nil
+	})
+
+	skill := Skill{
+		Name: "greet",
+		Steps: []Step{
+			{
+				Type:   StepTool,
+				Name:   "say-hello",
+				Model:  "greeter",
+				Output: "greeting",
+			},
+		},
+	}
+
+	result, err := ex.Execute(context.Background(), skill, map[string]interface{}{
+		"name": "World",
+	})
+	assert.NoError(t, err)
+	assert.Equal(t, "Hello, World!", result["greeting"])
+}
+
+func TestExecuteToolStep_NotRegistered(t *testing.T) {
+	ex := NewExecutor(&mockRuntime{})
+
+	skill := Skill{
+		Name: "fail",
+		Steps: []Step{
+			{
+				Type:  StepTool,
+				Name:  "unknown",
+				Model: "nonexistent_tool",
+			},
+		},
+	}
+
+	_, err := ex.Execute(context.Background(), skill, nil)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "not registered")
+}
+
+func TestExecuteToolStep_NoModel(t *testing.T) {
+	ex := NewExecutor(&mockRuntime{})
+
+	skill := Skill{
+		Name: "fail",
+		Steps: []Step{
+			{
+				Type: StepTool,
+				Name: "missing-model",
+			},
+		},
+	}
+
+	_, err := ex.Execute(context.Background(), skill, nil)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "tool name")
+}
+
+func TestExecuteToolStep_PassesConfigAsArgs(t *testing.T) {
+	ex := NewExecutor(&mockRuntime{})
+	ex.RegisterTool("configurable", func(ctx context.Context, args map[string]interface{}) (interface{}, error) {
+		return args["mode"], nil
+	})
+
+	skill := Skill{
+		Name: "cfg",
+		Steps: []Step{
+			{
+				Type:  StepTool,
+				Name:  "config-test",
+				Model: "configurable",
+				Config: map[string]interface{}{
+					"mode": "auto",
+				},
+				Output: "mode",
+			},
+		},
+	}
+
+	result, err := ex.Execute(context.Background(), skill, nil)
+	assert.NoError(t, err)
+	assert.Equal(t, "auto", result["mode"])
+}
+
+func TestRegisterTool_Multiple(t *testing.T) {
+	ex := NewExecutor(&mockRuntime{})
+	ex.RegisterTool("a", func(ctx context.Context, args map[string]interface{}) (interface{}, error) { return 1, nil })
+	ex.RegisterTool("b", func(ctx context.Context, args map[string]interface{}) (interface{}, error) { return 2, nil })
+	tools := ex.RegisteredTools()
+	assert.Len(t, tools, 2)
+	assert.Contains(t, tools, "a")
+	assert.Contains(t, tools, "b")
+}
