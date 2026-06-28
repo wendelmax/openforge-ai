@@ -1,0 +1,143 @@
+version: '3'
+
+vars:
+  BINARY: openforge
+  BUILD_DIR: build
+  VERSION:
+    sh: git describe --tags --always --dirty 2>/dev/null || echo "dev"
+
+tasks:
+  default:
+    deps: [build]
+
+  build:
+    desc: Build the binary (stub mode)
+    cmds:
+      - CGO_ENABLED=0 go build -ldflags="-X main.version={{.VERSION}}" -o {{.BUILD_DIR}}/{{.BINARY}} ./cmd/server
+    sources:
+      - "**/*.go"
+      - go.mod
+      - go.sum
+    generates:
+      - "{{.BUILD_DIR}}/{{.BINARY}}"
+
+  build:linux:
+    desc: Build for Linux amd64 (stub)
+    cmds:
+      - GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags="-X main.version={{.VERSION}}" -o {{.BUILD_DIR}}/{{.BINARY}}-linux-amd64 ./cmd/server
+
+  build:windows:
+    desc: Build for Windows amd64 (stub)
+    cmds:
+      - GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -ldflags="-X main.version={{.VERSION}}" -o {{.BUILD_DIR}}/{{.BINARY}}-windows-amd64.exe ./cmd/server
+
+  build:darwin:
+    desc: Build for macOS arm64 (stub)
+    cmds:
+      - GOOS=darwin GOARCH=arm64 CGO_ENABLED=0 go build -ldflags="-X main.version={{.VERSION}}" -o {{.BUILD_DIR}}/{{.BINARY}}-darwin-arm64 ./cmd/server
+
+  # --- CGO builds (require Docker builder image) ---
+
+  dist:builder:
+    desc: Build the Docker builder image for CGO builds
+    cmds:
+      - docker build -t ghcr.io/openforge-ai/builder:go1.26-ov2026.2.1 -f build/Dockerfile.builder .
+
+  dist:linux-cgo:
+    desc: Build CGO binary for Linux amd64 (inside Docker)
+    cmds:
+      - docker run --rm -v $(pwd):/build ghcr.io/openforge-ai/builder:go1.26-ov2026.2.1 \
+          bash -c "source build/builder-env.sh && go build -ldflags='-s -w' -o /build/{{.BUILD_DIR}}/{{.BINARY}}-linux-amd64-cgo ./cmd/openforge"
+    deps: [dist:builder]
+
+  dist:stub:
+    desc: Build stub binaries for all supported platforms
+    cmds:
+      - task: build:linux
+      - task: build:windows
+      - task: build:darwin
+
+  dist:
+    desc: Build all distribution binaries (CGO + stub)
+    deps: [dist:stub, dist:linux-cgo]
+
+  release:
+    desc: Create a full release with goreleaser (requires git tag)
+    cmds:
+      - goreleaser release --clean
+
+  # --- Development ---
+
+  test:
+    desc: Run all tests
+    cmds:
+      - go test ./... -v -count=1
+
+  test:cover:
+    desc: Run tests with coverage
+    cmds:
+      - go test ./... -coverprofile=coverage.out -covermode=atomic
+      - go tool cover -html=coverage.out -o coverage.html
+
+  test:race:
+    desc: Run tests with race detector
+    cmds:
+      - go test ./... -race -count=1
+
+  lint:
+    desc: Run linter
+    cmds:
+      - golangci-lint run ./...
+
+  vet:
+    desc: Run go vet
+    cmds:
+      - go vet ./...
+
+  fmt:
+    desc: Format code
+    cmds:
+      - go fmt ./...
+
+  tidy:
+    desc: Tidy module dependencies
+    cmds:
+      - go mod tidy
+
+  clean:
+    desc: Clean build artifacts
+    cmds:
+      - rm -rf {{.BUILD_DIR}}/ coverage.out coverage.html
+
+  run:
+    desc: Run the server
+    cmds:
+      - go run ./cmd/server --config config.example.yaml
+
+  run:dev:
+    desc: Run with live reload (requires air)
+    cmds:
+      - air -- --config config.example.yaml --verbose
+
+  benchmark:
+    desc: Run benchmarks
+    cmds:
+      - go test ./... -bench=. -benchmem
+
+  doc:
+    desc: Start godoc server
+    cmds:
+      - godoc -http=:6060
+
+  swagger:
+    desc: Generate OpenAPI spec
+    cmds:
+      - swag init -g cmd/server/main.go -o api/
+
+  deps:
+    desc: Install development dependencies
+    cmds:
+      - go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+      - go install github.com/swaggo/swag/cmd/swag@latest
+      - go install github.com/air-verse/air@latest
+      - go install github.com/vektra/mockery/v2@latest

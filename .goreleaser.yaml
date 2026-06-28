@@ -1,0 +1,136 @@
+version: 2
+
+project_name: openforge
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  # --- CGO build: Linux amd64 with OpenVINO ---
+  - id: openforge-linux-amd64
+    main: ./cmd/openforge
+    binary: openforge
+    builder: docker
+    docker:
+      image: ghcr.io/openforge-ai/builder:go1.26-ov2026.2.1
+      hide_pre: true
+    env:
+      - CGO_ENABLED=1
+      - GOOS=linux
+      - GOARCH=amd64
+      - PKG_CONFIG_PATH=/opt/pkgconfig
+      - LD_LIBRARY_PATH=/opt/openvino/runtime/lib/intel64
+    ldflags:
+      - -s -w
+      - -X github.com/openforge-ai/openforge/cmd/openforge/cmd.Version={{ .Version }}
+      - -X github.com/openforge-ai/openforge/cmd/openforge/cmd.Commit={{ .Commit }}
+      - -X github.com/openforge-ai/openforge/cmd/openforge/cmd.Date={{ .Date }}
+    goos:
+      - linux
+    goarch:
+      - amd64
+
+  # --- Stub builds: all platforms, no OpenVINO ---
+  - id: openforge-stub
+    main: ./cmd/openforge
+    binary: openforge
+    env:
+      - CGO_ENABLED=0
+    ldflags:
+      - -s -w
+      - -X github.com/openforge-ai/openforge/cmd/openforge/cmd.Version={{ .Version }}
+      - -X github.com/openforge-ai/openforge/cmd/openforge/cmd.Commit={{ .Commit }}
+      - -X github.com/openforge-ai/openforge/cmd/openforge/cmd.Date={{ .Date }}
+    goos:
+      - linux
+      - windows
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    ignore:
+      - goos: linux
+        goarch: amd64    # use CGO build instead for full OpenVINO support
+      - goos: windows
+        goarch: arm64    # not supported by Go toolchain
+      - goos: darwin
+        goarch: amd64    # not a target platform
+
+archives:
+  # CGO Linux archives include OpenVINO runtime libraries
+  - id: cgo-linux
+    builds:
+      - openforge-linux-amd64
+    formats: tar.gz
+    name_template: "{{ .ProjectName }}-{{ .Os }}-{{ .Arch }}-with-openvino"
+    files:
+      - README.md
+      - LICENSE
+      - src: /opt/openvino/runtime/lib/intel64/libopenvino_c.so*
+        dst: lib/
+        strip_parent: true
+      - src: /opt/openvino/runtime/lib/intel64/libopenvino.so*
+        dst: lib/
+        strip_parent: true
+      - src: /opt/openvino/runtime/lib/intel64/libopenvino_intel_cpu_plugin.so
+        dst: lib/
+        strip_parent: true
+      - src: /opt/openvino/runtime/lib/intel64/libopenvino_ir_frontend.so*
+        dst: lib/
+        strip_parent: true
+
+  # Stub archives: standalone binary, no OpenVINO runtime
+  - id: stub
+    builds:
+      - openforge-stub
+    formats: tar.gz
+    name_template: "{{ .ProjectName }}-{{ .Os }}-{{ .Arch }}"
+    files:
+      - README.md
+      - LICENSE
+
+checksum:
+  name_template: "checksums.txt"
+
+snapshot:
+  name_template: "{{ .Tag }}-next"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^chore:"
+      - "^ci:"
+
+release:
+  github:
+    owner: openforge-ai
+    name: openforge
+  draft: true
+  prerelease: auto
+
+dockers:
+  # Production Docker image with OpenVINO runtime
+  - image_templates:
+      - "ghcr.io/openforge-ai/openforge:{{ .Version }}"
+      - "ghcr.io/openforge-ai/openforge:latest"
+    dockerfile: Dockerfile
+    build_flag_templates:
+      - "--label=org.opencontainers.image.title=OpenForge"
+      - "--label=org.opencontainers.image.version={{ .Version }}"
+      - "--label=org.opencontainers.image.description=AI Runtime for Developers — 100% Local, 100% OpenVINO"
+
+brews:
+  - name: openforge
+    homepage: https://openforge.ai
+    description: "AI Runtime for Developers — 100% Local, 100% OpenVINO"
+    license: Apache-2.0
+    repository:
+      owner: openforge-ai
+      name: homebrew-tap
+    commit_author:
+      name: openforge-bot
+      email: bot@openforge.ai

@@ -1,0 +1,23 @@
+server:
+  host: "127.0.0.1"
+  port: 9090
+  timeout: 30
+
+models:
+  path: "./models"
+  default: ""
+  device: "auto"
+
+cache:
+  enabled: true
+  backend: "memory"
+  path: "./data/cache"
+  max_size: 1073741824
+
+logging:
+  level: "info"
+  format: "json"
+  output: "stdout"
+
+telemetry:
+  enabled: false

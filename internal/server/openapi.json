@@ -1,0 +1,989 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "OpenForge API",
+    "version": "0.1.0",
+    "description": "AI Runtime for Developers — 100% Local, 100% OpenVINO"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:9090",
+      "description": "Local development"
+    }
+  ],
+  "paths": {
+    "/health": {
+      "get": {
+        "summary": "Health check",
+        "description": "Returns the health status of the runtime.",
+        "tags": ["health"],
+        "responses": {
+          "200": {
+            "description": "Health status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/health": {
+      "get": {
+        "summary": "Health check (v1)",
+        "description": "Returns the health status of the runtime.",
+        "tags": ["health"],
+        "responses": {
+          "200": {
+            "description": "Health status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/chat": {
+      "post": {
+        "summary": "Chat completion",
+        "description": "Send a chat message and get a response from the model.",
+        "tags": ["inference"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChatRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Chat completion response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/completion": {
+      "post": {
+        "summary": "Text completion",
+        "description": "Send a prompt and get a text completion from the model.",
+        "tags": ["inference"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompletionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Completion response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompletionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/embeddings": {
+      "post": {
+        "summary": "Generate embeddings",
+        "description": "Generate embedding vectors for input texts.",
+        "tags": ["inference"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmbeddingRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Embedding response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmbeddingResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/rerank": {
+      "post": {
+        "summary": "Rerank documents",
+        "description": "Rerank documents against a query using cross-encoders.",
+        "tags": ["inference"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RerankRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Rerank response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RerankResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/models": {
+      "get": {
+        "summary": "List models",
+        "description": "List all available models in the runtime.",
+        "tags": ["models"],
+        "responses": {
+          "200": {
+            "description": "Model list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModelListResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/devices": {
+      "get": {
+        "summary": "List devices",
+        "description": "List all available compute devices.",
+        "tags": ["devices"],
+        "responses": {
+          "200": {
+            "description": "Device list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceListResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/model/load": {
+      "post": {
+        "summary": "Load model",
+        "description": "Load a model into memory for inference.",
+        "tags": ["models"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ModelLoadRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Model status after load",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModelStatus"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/model/unload": {
+      "post": {
+        "summary": "Unload model",
+        "description": "Unload a model from memory.",
+        "tags": ["models"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ModelUnloadRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Model status after unload",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModelStatus"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/benchmark": {
+      "post": {
+        "summary": "Run benchmark",
+        "description": "Run a performance benchmark on a loaded model.",
+        "tags": ["benchmark"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BenchmarkRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Benchmark results",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BenchmarkResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "HealthResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "example": "ok"
+          },
+          "version": {
+            "type": "string",
+            "example": "0.1.0-dev"
+          },
+          "uptime": {
+            "type": "string",
+            "example": "1h2m3s"
+          },
+          "models_loaded": {
+            "type": "integer",
+            "example": 2
+          },
+          "active_device": {
+            "type": "string",
+            "example": "CPU"
+          }
+        }
+      },
+      "Message": {
+        "type": "object",
+        "properties": {
+          "role": {
+            "type": "string",
+            "example": "user"
+          },
+          "content": {
+            "type": "string",
+            "example": "Hello!"
+          }
+        }
+      },
+      "ChatRequest": {
+        "type": "object",
+        "required": ["model", "messages"],
+        "properties": {
+          "model": {
+            "type": "string",
+            "example": "llama-3.2-3b"
+          },
+          "messages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Message"
+            }
+          },
+          "device": {
+            "type": "string",
+            "example": "CPU"
+          },
+          "max_tokens": {
+            "type": "integer",
+            "example": 256
+          },
+          "temperature": {
+            "type": "number",
+            "format": "float",
+            "example": 0.7
+          },
+          "top_p": {
+            "type": "number",
+            "format": "float",
+            "example": 0.9
+          },
+          "top_k": {
+            "type": "integer",
+            "example": 40
+          },
+          "stream": {
+            "type": "boolean",
+            "example": false
+          },
+          "stop": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "Usage": {
+        "type": "object",
+        "properties": {
+          "prompt_tokens": {
+            "type": "integer",
+            "example": 45
+          },
+          "completion_tokens": {
+            "type": "integer",
+            "example": 120
+          },
+          "total_tokens": {
+            "type": "integer",
+            "example": 165
+          }
+        }
+      },
+      "Timing": {
+        "type": "object",
+        "properties": {
+          "ttft": {
+            "type": "string",
+            "example": "150ms"
+          },
+          "total": {
+            "type": "string",
+            "example": "2.5s"
+          },
+          "tokens_per_second": {
+            "type": "number",
+            "format": "float",
+            "example": 45.6
+          },
+          "load_duration": {
+            "type": "string",
+            "example": "3.2s"
+          }
+        }
+      },
+      "Choice": {
+        "type": "object",
+        "properties": {
+          "index": {
+            "type": "integer",
+            "example": 0
+          },
+          "message": {
+            "$ref": "#/components/schemas/Message"
+          },
+          "finish_reason": {
+            "type": "string",
+            "example": "stop"
+          }
+        }
+      },
+      "ChatResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "chatcmpl-abc123"
+          },
+          "object": {
+            "type": "string",
+            "example": "chat.completion"
+          },
+          "created": {
+            "type": "integer",
+            "example": 1715000000
+          },
+          "model": {
+            "type": "string",
+            "example": "llama-3.2-3b"
+          },
+          "choices": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Choice"
+            }
+          },
+          "usage": {
+            "$ref": "#/components/schemas/Usage"
+          },
+          "timing": {
+            "$ref": "#/components/schemas/Timing"
+          }
+        }
+      },
+      "CompletionRequest": {
+        "type": "object",
+        "required": ["model", "prompt"],
+        "properties": {
+          "model": {
+            "type": "string",
+            "example": "llama-3.2-3b"
+          },
+          "prompt": {
+            "type": "string",
+            "example": "Once upon a time"
+          },
+          "device": {
+            "type": "string",
+            "example": "CPU"
+          },
+          "max_tokens": {
+            "type": "integer",
+            "example": 256
+          },
+          "temperature": {
+            "type": "number",
+            "format": "float",
+            "example": 0.7
+          },
+          "top_p": {
+            "type": "number",
+            "format": "float",
+            "example": 0.9
+          },
+          "top_k": {
+            "type": "integer",
+            "example": 40
+          },
+          "stop": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "CompletionChoice": {
+        "type": "object",
+        "properties": {
+          "index": {
+            "type": "integer",
+            "example": 0
+          },
+          "text": {
+            "type": "string",
+            "example": " in a land far away..."
+          },
+          "finish_reason": {
+            "type": "string",
+            "example": "stop"
+          }
+        }
+      },
+      "CompletionResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "cmpl-abc123"
+          },
+          "object": {
+            "type": "string",
+            "example": "text_completion"
+          },
+          "created": {
+            "type": "integer",
+            "example": 1715000000
+          },
+          "model": {
+            "type": "string",
+            "example": "llama-3.2-3b"
+          },
+          "choices": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CompletionChoice"
+            }
+          },
+          "usage": {
+            "$ref": "#/components/schemas/Usage"
+          },
+          "timing": {
+            "$ref": "#/components/schemas/Timing"
+          }
+        }
+      },
+      "EmbeddingRequest": {
+        "type": "object",
+        "required": ["model", "input"],
+        "properties": {
+          "model": {
+            "type": "string",
+            "example": "all-MiniLM-L6-v2"
+          },
+          "input": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "example": ["Hello world", "How are you?"]
+          },
+          "device": {
+            "type": "string",
+            "example": "CPU"
+          }
+        }
+      },
+      "EmbeddingData": {
+        "type": "object",
+        "properties": {
+          "object": {
+            "type": "string",
+            "example": "embedding"
+          },
+          "index": {
+            "type": "integer",
+            "example": 0
+          },
+          "embedding": {
+            "type": "array",
+            "items": {
+              "type": "number",
+              "format": "float"
+            }
+          }
+        }
+      },
+      "EmbeddingResponse": {
+        "type": "object",
+        "properties": {
+          "object": {
+            "type": "string",
+            "example": "list"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EmbeddingData"
+            }
+          },
+          "model": {
+            "type": "string",
+            "example": "all-MiniLM-L6-v2"
+          },
+          "usage": {
+            "$ref": "#/components/schemas/Usage"
+          }
+        }
+      },
+      "RerankRequest": {
+        "type": "object",
+        "required": ["model", "query", "documents"],
+        "properties": {
+          "model": {
+            "type": "string",
+            "example": "all-MiniLM-L6-v2"
+          },
+          "query": {
+            "type": "string",
+            "example": "What is the capital of France?"
+          },
+          "documents": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "example": ["Paris is the capital of France.", "London is the capital of England."]
+          },
+          "device": {
+            "type": "string",
+            "example": "CPU"
+          },
+          "top_n": {
+            "type": "integer",
+            "example": 3
+          }
+        }
+      },
+      "RerankResult": {
+        "type": "object",
+        "properties": {
+          "index": {
+            "type": "integer",
+            "example": 0
+          },
+          "score": {
+            "type": "number",
+            "format": "float",
+            "example": 0.95
+          },
+          "document": {
+            "type": "string",
+            "example": "Paris is the capital of France."
+          }
+        }
+      },
+      "RerankResponse": {
+        "type": "object",
+        "properties": {
+          "object": {
+            "type": "string",
+            "example": "rerank"
+          },
+          "model": {
+            "type": "string",
+            "example": "all-MiniLM-L6-v2"
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RerankResult"
+            }
+          }
+        }
+      },
+      "ModelInfo": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "llama-3.2-3b"
+          },
+          "name": {
+            "type": "string",
+            "example": "Llama 3.2 3B"
+          },
+          "path": {
+            "type": "string",
+            "example": "/models/llama-3.2-3b"
+          },
+          "precision": {
+            "type": "string",
+            "example": "FP16"
+          },
+          "loaded": {
+            "type": "boolean",
+            "example": true
+          },
+          "size": {
+            "type": "integer",
+            "example": 6000000000
+          },
+          "version": {
+            "type": "string",
+            "example": "1.0"
+          }
+        }
+      },
+      "ModelListResponse": {
+        "type": "object",
+        "properties": {
+          "object": {
+            "type": "string",
+            "example": "list"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ModelInfo"
+            }
+          }
+        }
+      },
+      "Device": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "CPU"
+          },
+          "name": {
+            "type": "string",
+            "example": "Intel CPU"
+          },
+          "type": {
+            "type": "string",
+            "example": "CPU"
+          },
+          "available": {
+            "type": "boolean",
+            "example": true
+          },
+          "memory": {
+            "type": "integer",
+            "example": 16000000000
+          },
+          "priority": {
+            "type": "integer",
+            "example": 1
+          }
+        }
+      },
+      "DeviceListResponse": {
+        "type": "object",
+        "properties": {
+          "object": {
+            "type": "string",
+            "example": "list"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Device"
+            }
+          }
+        }
+      },
+      "ModelLoadRequest": {
+        "type": "object",
+        "required": ["model_id"],
+        "properties": {
+          "model_id": {
+            "type": "string",
+            "example": "llama-3.2-3b"
+          },
+          "device": {
+            "type": "string",
+            "example": "CPU"
+          }
+        }
+      },
+      "ModelUnloadRequest": {
+        "type": "object",
+        "required": ["model_id"],
+        "properties": {
+          "model_id": {
+            "type": "string",
+            "example": "llama-3.2-3b"
+          }
+        }
+      },
+      "ModelStatus": {
+        "type": "object",
+        "properties": {
+          "object": {
+            "type": "string",
+            "example": "model"
+          },
+          "id": {
+            "type": "string",
+            "example": "llama-3.2-3b"
+          },
+          "status": {
+            "type": "string",
+            "example": "loaded"
+          },
+          "device": {
+            "type": "string",
+            "example": "CPU"
+          },
+          "timing": {
+            "$ref": "#/components/schemas/Timing"
+          }
+        }
+      },
+      "BenchmarkRequest": {
+        "type": "object",
+        "required": ["model"],
+        "properties": {
+          "model": {
+            "type": "string",
+            "example": "llama-3.2-3b"
+          },
+          "device": {
+            "type": "string",
+            "example": "CPU"
+          },
+          "iterations": {
+            "type": "integer",
+            "example": 10
+          }
+        }
+      },
+      "BenchmarkResponse": {
+        "type": "object",
+        "properties": {
+          "model": {
+            "type": "string",
+            "example": "llama-3.2-3b"
+          },
+          "device": {
+            "type": "string",
+            "example": "CPU"
+          },
+          "tokens_per_second": {
+            "type": "number",
+            "format": "float",
+            "example": 45.6
+          },
+          "ttft_ms": {
+            "type": "number",
+            "format": "float",
+            "example": 150.5
+          },
+          "latency_p50_ms": {
+            "type": "number",
+            "format": "float",
+            "example": 200.0
+          },
+          "latency_p95_ms": {
+            "type": "number",
+            "format": "float",
+            "example": 350.0
+          },
+          "latency_p99_ms": {
+            "type": "number",
+            "format": "float",
+            "example": 500.0
+          },
+          "memory_mb": {
+            "type": "integer",
+            "example": 4096
+          }
+        }
+      },
+      "APIError": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "example": "invalid_request"
+          },
+          "message": {
+            "type": "string",
+            "example": "model is required"
+          },
+          "request_id": {
+            "type": "string",
+            "example": "abc-123-def"
+          }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "$ref": "#/components/schemas/APIError"
+          }
+        }
+      }
+    }
+  }
+}

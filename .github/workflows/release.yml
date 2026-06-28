@@ -1,0 +1,83 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  # Linux CGO + all stub builds + Docker image via goreleaser
+  goreleaser:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.26"
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push builder image
+        run: |
+          docker build -t ghcr.io/openforge-ai/builder:go1.26-ov2026.2.1 -f build/Dockerfile.builder .
+          docker push ghcr.io/openforge-ai/builder:go1.26-ov2026.2.1
+
+      - name: Run goreleaser
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          version: latest
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # Windows CGO build (nativo, não cross-compile)
+  windows-cgo:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.26"
+
+      - name: Install OpenVINO
+        run: pip install openvino==2026.2.1
+
+      - name: Set up build environment
+        shell: pwsh
+        run: |
+          $ovPkg = python -c "import openvino, os; print(os.path.dirname(openvino.__file__))"
+          $ovLibs = "$ovPkg\libs"
+          echo "CGO_ENABLED=1" | Out-File -FilePath $env:GITHUB_ENV -Append
+          echo "CGO_CFLAGS=-I$ovLibs" | Out-File -FilePath $env:GITHUB_ENV -Append
+          echo "CGO_LDFLAGS=-L$ovLibs -lopenvino_c" | Out-File -FilePath $env:GITHUB_ENV -Append
+
+      - name: Build CGO binary
+        run: go build -ldflags="-s -w -X github.com/openforge-ai/openforge/cmd/openforge/cmd.Version=${{ github.ref_name }}" -o openforge-windows-amd64-cgo.exe ./cmd/openforge
+
+      - name: Collect DLLs
+        shell: pwsh
+        run: |
+          $ovPkg = python -c "import openvino, os; print(os.path.dirname(openvino.__file__))"
+          $ovLibs = "$ovPkg\libs"
+          mkdir dist -Force
+          Copy-Item "openforge-windows-amd64-cgo.exe" "dist\openforge.exe"
+          Copy-Item "$ovLibs\*.dll" "dist\"
+
+      - name: Create ZIP archive
+        shell: pwsh
+        run: |
+          Compress-Archive -Path dist\* -DestinationPath openforge-windows-amd64-with-openvino.zip
+
+      - name: Upload release asset
+        uses: softprops/action-gh-release@v2
+        with:
+          files: openforge-windows-amd64-with-openvino.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

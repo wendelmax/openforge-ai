@@ -1,0 +1,113 @@
+name: CI
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.26"
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v4
+
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        cgo: ["0", "1"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.26"
+      - name: Install OpenVINO (CGO=1)
+        if: matrix.cgo == '1'
+        run: |
+          curl -fsSLo /tmp/openvino.tgz https://storage.openvinotoolkit.org/repositories/openvino/packages/2026.2.1/linux/openvino_toolkit_ubuntu24_2026.2.1.21919.ede283a88e3_x86_64.tgz && sudo tar -C /opt -xzf /tmp/openvino.tgz --strip-components=1
+          sudo mkdir -p /opt/pkgconfig
+          cat | sudo tee /opt/pkgconfig/openvino.pc << 'EOF'
+prefix=/opt
+exec_prefix=${prefix}
+libdir=${exec_prefix}/runtime/lib/intel64
+includedir=${prefix}/runtime/include
+Name: openvino
+Description: Intel OpenVINO Toolkit
+Version: 2026.2.1
+Libs: -L${libdir} -lopenvino_c
+Cflags: -I${includedir}
+EOF
+          echo "PKG_CONFIG_PATH=/opt/pkgconfig" >> $GITHUB_ENV
+          echo "LD_LIBRARY_PATH=/opt/runtime/lib/intel64" >> $GITHUB_ENV
+      - name: Test
+        run: CGO_ENABLED=${{ matrix.cgo }} go test ./... -count=1 -coverprofile=coverage.out
+      - name: Upload coverage
+        if: matrix.cgo == '0'
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./coverage.out
+
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [linux, windows, darwin]
+        arch: [amd64, arm64]
+        exclude:
+          - os: windows
+            arch: arm64
+          - os: darwin
+            arch: amd64
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.26"
+      - name: Build
+        run: GOOS=${{ matrix.os }} GOARCH=${{ matrix.arch }} CGO_ENABLED=0 go build -o openforge-${{ matrix.os }}-${{ matrix.arch }} ./cmd/openforge
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: openforge-stub-${{ matrix.os }}-${{ matrix.arch }}
+          path: openforge-${{ matrix.os }}-${{ matrix.arch }}
+
+  build-cgo:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.26"
+      - name: Build Docker builder image
+        run: docker build -t ghcr.io/openforge-ai/builder:go1.26-ov2026.2.1 -f build/Dockerfile.builder .
+      - name: Build CGO binary
+        run: |
+          docker run --rm -v $(pwd):/build ghcr.io/openforge-ai/builder:go1.26-ov2026.2.1 \
+            bash -c "source build/builder-env.sh && go build -ldflags='-s -w' -o /build/openforge-cgo-linux-amd64 ./cmd/openforge"
+      - name: Verify CGO binary
+        run: |
+          file openforge-cgo-linux-amd64
+          ldd openforge-cgo-linux-amd64 | grep openvino
+      - name: Upload CGO artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: openforge-cgo-linux-amd64
+          path: openforge-cgo-linux-amd64
+
+  bench:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.26"
+      - name: Benchmark
+        run: CGO_ENABLED=0 go test ./... -bench=. -benchmem -count=1

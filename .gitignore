@@ -1,0 +1,59 @@
+# Binaries
+/build/
+/openforge
+/openforge.exe
+/openforge-linux
+/server
+/server.exe
+*.exe
+*.dll
+*.so
+*.dylib
+*.test
+*.prof
+
+# Cross-compiled test binaries
+/test-linux
+/test-windows*
+/test-darwin*
+
+# Go
+go.sum
+vendor/
+
+# Test output
+coverage.out
+coverage.html
+*.out
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Data & Models (user-downloaded)
+/data/
+/models/
+
+# Build artifacts
+/tmp/
+
+# Config overrides
+config.yaml
+config.local.yaml
+.env
+
+# OS temp
+*.tmp
+
+# Logs
+*.log
+
+# Generated test artifacts
+smoke-report.json
