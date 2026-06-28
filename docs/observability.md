@@ -1,5 +1,7 @@
 # Observability
 
+> **⚠️ Aspirational:** Prometheus, OpenTelemetry tracing, and pprof endpoints are planned but not yet implemented. Only `slog` structured logging is currently available.
+
 OpenForge exposes metrics, logs, and traces for monitoring and debugging.
 
 ## Metrics

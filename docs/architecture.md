@@ -95,6 +95,23 @@ Rules:
 - No layer imports from layers above it
 - All inter-layer communication through Go interfaces
 
+## Communication Patterns
+
+| Layer | Protocol | Format |
+|-------|----------|--------|
+| OpenCode ↔ API | HTTP/1.1 | JSON |
+| API ↔ Engine | Go function call | Go structs |
+| Engine ↔ Provider | Go interface | Go structs |
+| Provider ↔ OpenVINO | CGO / OpenVINO C API | C buffers |
+
+## Cross-Cutting Concerns
+
+- **Logging**: structured logs via slog (standard library)
+- **Config**: hierarchical merge per layer
+- **Errors**: typed errors with wrapped context
+- **Metrics**: counters and histograms (future: OpenTelemetry)
+- **Tracing**: distributed spans for critical operations
+
 ## Key Design Decisions
 
 | Decision | Rationale |

@@ -1,5 +1,7 @@
 # Benchmarks
 
+> **⚠️ Aspirational:** Benchmark numbers shown are projected targets, not measured results. Run `openforge benchmark` on your hardware for real numbers.
+
 Benchmarks are our **north star**. Every commit is measured against real hardware to ensure performance never regresses.
 
 ## Hardware Tested

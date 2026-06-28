@@ -8,6 +8,30 @@ OpenForge exposes an OpenAI-compatible REST API.
 http://localhost:9090/v1
 ```
 
+## Standard Response Envelope
+
+All responses follow this envelope:
+
+```json
+{
+  "object": "chat.completion",
+  "id": "chatcmpl-xxx",
+  "created": 1710000000,
+  "model": "model-id",
+  "choices": [...],
+  "usage": {
+    "prompt_tokens": 42,
+    "completion_tokens": 128,
+    "total_tokens": 170
+  },
+  "timing": {
+    "ttft": "150ms",
+    "total": "2.5s",
+    "tokens_per_second": 51.2
+  }
+}
+```
+
 ## Standard Headers
 
 ```http

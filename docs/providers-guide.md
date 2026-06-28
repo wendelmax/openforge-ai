@@ -1,5 +1,7 @@
 # Providers Guide
 
+> **⚠️ Aspirational:** The Plugin API for third-party providers is not yet implemented. Only the native OpenVINO provider is available.
+
 Providers abstract the inference backend from the engine. Currently, OpenForge supports one native provider (OpenVINO). The Plugin API enables third-party implementations.
 
 ## Provider Interface

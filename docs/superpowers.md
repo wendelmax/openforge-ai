@@ -1,5 +1,7 @@
 # OpenCode & Superpowers Compatibility
 
+> **⚠️ Aspirational:** The OpenCode/Superpowers provider integration is a conceptual design. The HTTP API is OpenAI-compatible but no native OpenCode provider plugin exists yet.
+
 OpenForge works as a native **provider** for OpenCode and is compatible with the **Superpowers** skill ecosystem.
 
 ## Architecture

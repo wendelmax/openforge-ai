@@ -1,5 +1,7 @@
 # Plugin Architecture
 
+> **⚠️ Aspirational:** The plugin system is planned for a future release (v0.7+). Plugin CLI commands and `.so` loading are not yet implemented.
+
 Plugins extend OpenForge's capabilities without modifying core code.
 
 ## Overview
