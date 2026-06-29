@@ -7,7 +7,9 @@ import (
 	"os"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/openforge-ai/openforge/internal/pm"
 	"github.com/openforge-ai/openforge/internal/provider/openvino"
+	"github.com/openforge-ai/openforge/internal/tool"
 	"github.com/openforge-ai/openforge/internal/tui"
 )
 
@@ -22,27 +24,40 @@ func runTUI() error {
 		Level: slog.LevelWarn,
 	})))
 
-	provider := openvino.NewProvider(cfg.ModelPath)
-
 	ctx := context.Background()
-	if err := provider.Initialize(ctx); err != nil {
-		return fmt.Errorf("initialize: %w", err)
+
+	// Build the OpenVINO adapter + discover other providers
+	ovProvider := pm.NewOpenVINOAdapter(cfg.ModelPath)
+	if err := ovProvider.Start(ctx); err != nil {
+		slog.Warn("OpenVINO init failed (stub mode)", "error", err)
 	}
 
+	pman := pm.New([]pm.Provider{ovProvider}, pm.Config{
+		Chain: []pm.ProviderType{pm.ProviderOpenVINO, pm.ProviderOllama},
+	})
+
+	prov, err := pman.ActiveProvider(ctx)
+	if err != nil {
+		return fmt.Errorf("no inference provider available: %w\nRun 'openforge provider install ollama' to install one.", err)
+	}
+
+	tools := tool.DefaultRegistry().List()
+
+	// Load default model if configured
 	if cfg.DefaultModel != "" {
-		if err := provider.Runtime().LoadModel(ctx, cfg.DefaultModel, cfg.DefaultModel, cfg.Device); err != nil {
+		if err := prov.LoadModel(ctx, cfg.DefaultModel); err != nil {
 			slog.Warn("default model not loaded", "model", cfg.DefaultModel, "error", err)
 		}
 	}
 
-	mdl := tui.New(provider.Runtime())
+	mdl := tui.New(pman, prov, tools)
 	p := tea.NewProgram(mdl, tea.WithAltScreen())
 	mdl.SetProgram(p)
 	if _, err := p.Run(); err != nil {
 		return fmt.Errorf("tui: %w", err)
 	}
 
-	return provider.Shutdown(ctx)
+	return nil
 }
 
 type tuiConfig struct {
@@ -67,9 +82,7 @@ func parseConfig(path string) (*tuiConfig, error) {
 }
 
 func defaultConfig() *tuiConfig {
-	return &tuiConfig{
-		ModelPath:    "./models",
-		DefaultModel: "",
-		Device:       "auto",
-	}
+	return &tuiConfig{ModelPath: "./models", DefaultModel: "", Device: "auto"}
 }
+
+var _ = openvino.NewProvider // ensure import used

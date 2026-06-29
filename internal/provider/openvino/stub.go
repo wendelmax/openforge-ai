@@ -26,8 +26,6 @@ func (c *Core) CompileModel(model *Model, device string) (*CompiledModel, error)
 	return nil, fmt.Errorf("OpenVINO requires CGO")
 }
 
-var stubGetAvailableDevices func() ([]string, error)
-
 func (c *Core) GetAvailableDevices() ([]string, error) {
 	if stubGetAvailableDevices != nil {
 		return stubGetAvailableDevices()

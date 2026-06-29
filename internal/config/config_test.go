@@ -2,6 +2,7 @@ package config
 
 import (
 	"os"
+	"os/exec"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -159,6 +160,9 @@ func TestExpandValue_DollarSign(t *testing.T) {
 func TestExpandValue_CmdSubst(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping shell command test in short mode")
+	}
+	if _, err := exec.LookPath("sh"); err != nil {
+		t.Skip("sh not available (Windows)")
 	}
 	got := expandValue("$(echo hello)")
 	assert.Equal(t, "hello", got)

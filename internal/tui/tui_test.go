@@ -13,8 +13,8 @@ func TestGetCompletions(t *testing.T) {
 		input    string
 		expected []string
 	}{
-		{name: "empty", input: "", expected: []string{"/help", "/model", "/device", "/clear", "/exit"}},
-		{name: "/", input: "/", expected: []string{"/help", "/model", "/device", "/clear", "/exit"}},
+		{name: "empty", input: "", expected: []string{"/help", "/model", "/device", "/clear", "/exit", "/provider", "/tools", "/save", "/load", "/yolo"}},
+		{name: "/", input: "/", expected: []string{"/help", "/model", "/device", "/clear", "/exit", "/provider", "/tools", "/save", "/load", "/yolo"}},
 		{name: "/m", input: "/m", expected: []string{"/model"}},
 		{name: "/model with trailing space", input: "/model ", expected: []string{"phi-3-mini", "llama-3b"}},
 		{name: "/d", input: "/d", expected: []string{"/device"}},

@@ -1,9 +1,9 @@
-// Package engine manages chat sessions and context.
 package engine
 
 import (
 	"context"
 	"fmt"
+	"log"
 	"sync"
 	"time"
 
@@ -14,12 +14,12 @@ import (
 
 // Session represents a chat session with messages and a model assignment.
 type Session struct {
-	ID        string            `json:"id"`
-	ModelID   string            `json:"model_id"`
-	Messages  []runtime.Message `json:"messages"`
-	CreatedAt time.Time         `json:"created_at"`
-	UpdatedAt time.Time         `json:"updated_at"`
-	MaxTokens int               `json:"max_tokens,omitempty"`
+	ID        string             `json:"id"`
+	ModelID   string             `json:"model_id"`
+	Messages  []runtime.Message  `json:"messages"`
+	CreatedAt time.Time          `json:"created_at"`
+	UpdatedAt time.Time          `json:"updated_at"`
+	MaxTokens int                `json:"max_tokens,omitempty"`
 }
 
 // Engine manages chat sessions and coordinates with the AI runtime.
@@ -30,11 +30,22 @@ type Engine struct {
 	executor *skill.Executor
 }
 
-// New creates a new Engine with an in-memory session store.
+// New creates a new Engine with SQLite session persistence, falling back to memory.
 func New(rt runtime.Runtime) *Engine {
+	store, err := NewSQLiteSessionStore("./data/sessions.db")
+	if err != nil {
+		log.Printf("sqlite store init failed, using memory: %v", err)
+		store = nil
+	}
+	var s SessionStore
+	if store != nil {
+		s = store
+	} else {
+		s = NewMemorySessionStore()
+	}
 	return &Engine{
 		runtime:  rt,
-		store:    NewMemorySessionStore(),
+		store:    s,
 		executor: skill.NewExecutor(rt),
 	}
 }
@@ -53,7 +64,7 @@ func (e *Engine) Store() SessionStore {
 	return e.store
 }
 
-// SkillExecutor returns the skill executor used by the engine.
+// SkillExecutor returns the skill executor.
 func (e *Engine) SkillExecutor() *skill.Executor {
 	return e.executor
 }
@@ -76,49 +87,29 @@ func (e *Engine) CreateSession(ctx context.Context, modelID string) (*Session, e
 		UpdatedAt: time.Now(),
 	}
 	if err := e.store.Create(ctx, session); err != nil {
-		return nil, fmt.Errorf("store create: %w", err)
+		return nil, fmt.Errorf("create session: %w", err)
 	}
 	return session, nil
 }
 
 // GetSession retrieves a session by ID, returning an error if not found.
 func (e *Engine) GetSession(ctx context.Context, sessionID string) (*Session, error) {
-	e.mu.RLock()
-	defer e.mu.RUnlock()
 	return e.store.Get(ctx, sessionID)
 }
 
 // DeleteSession removes a session by ID, returning an error if not found.
 func (e *Engine) DeleteSession(ctx context.Context, sessionID string) error {
-	e.mu.Lock()
-	defer e.mu.Unlock()
 	return e.store.Delete(ctx, sessionID)
 }
 
-// ClearSessions removes all sessions from the store.
+// ClearSessions removes all sessions from the engine.
 func (e *Engine) ClearSessions(ctx context.Context) error {
-	e.mu.Lock()
-	defer e.mu.Unlock()
-	// For MemorySessionStore, List+Delete works.
-	// For stores that support batch clear, we could add a Clear method.
-	sessions, err := e.store.List(ctx)
-	if err != nil {
-		return err
-	}
-	for _, s := range sessions {
-		if err := e.store.Delete(ctx, s.ID); err != nil {
-			return err
-		}
-	}
-	return nil
+	return e.store.Close(ctx)
 }
 
 // AddMessage appends a message to a session and trims old messages if the token budget is exceeded.
 func (e *Engine) AddMessage(ctx context.Context, sessionID string, msg runtime.Message) (*Session, error) {
-	e.mu.Lock()
-	defer e.mu.Unlock()
-
-	session, err := e.store.Get(ctx, sessionID)
+	session, err := e.GetSession(ctx, sessionID)
 	if err != nil {
 		return nil, err
 	}
@@ -141,7 +132,7 @@ func (e *Engine) AddMessage(ctx context.Context, sessionID string, msg runtime.M
 	}
 
 	if err := e.store.Update(ctx, session); err != nil {
-		return nil, fmt.Errorf("store update: %w", err)
+		return nil, fmt.Errorf("update session: %w", err)
 	}
 	return session, nil
 }

@@ -92,16 +92,62 @@ type BenchmarkConfig struct {
 
 // Config is the top-level application configuration.
 type Config struct {
-	Server    ServerConfig    `mapstructure:"server"`
-	Models    ModelsConfig    `mapstructure:"models"`
-	Cache     CacheConfig     `mapstructure:"cache"`
-	Devices   DeviceConfig    `mapstructure:"devices"`
-	Session   SessionConfig   `mapstructure:"session"`
-	Benchmark BenchmarkConfig `mapstructure:"benchmark"`
-	Logging   LoggingConfig             `mapstructure:"logging"`
-	MCP       map[string]MCServerConfig `mapstructure:"mcp,omitempty"`
-	Permissions PermissionsConfig       `mapstructure:"permissions,omitempty"`
-	Telemetry TelemetryConfig `mapstructure:"telemetry"`
+	Server      ServerConfig              `mapstructure:"server"`
+	Models      ModelsConfig              `mapstructure:"models"`
+	Cache       CacheConfig               `mapstructure:"cache"`
+	Devices     DeviceConfig              `mapstructure:"devices"`
+	Session     SessionConfig             `mapstructure:"session"`
+	Benchmark   BenchmarkConfig           `mapstructure:"benchmark"`
+	Logging     LoggingConfig             `mapstructure:"logging"`
+	MCP         map[string]MCServerConfig `mapstructure:"mcp,omitempty"`
+	Permissions PermissionsConfig         `mapstructure:"permissions,omitempty"`
+	Hooks       HooksConfig               `mapstructure:"hooks,omitempty"`
+	Telemetry   TelemetryConfig           `mapstructure:"telemetry"`
+}
+
+// HooksConfig is the top-level hooks block in the main config.
+type HooksConfig struct {
+	PreToolUse  []HookDef `mapstructure:"PreToolUse"`
+	PostToolUse []HookDef `mapstructure:"PostToolUse"`
+}
+
+// HookDef describes a single hook script in config.
+type HookDef struct {
+	Name    string `mapstructure:"name"`
+	Run     string `mapstructure:"run"`
+	Timeout int    `mapstructure:"timeout"`
+}
+
+// GetMCPServers returns MCP server configurations from the config.
+func GetMCPServers(cfg *Config) map[string]MCServerConfig {
+	if cfg == nil || cfg.MCP == nil {
+		return nil
+	}
+	return cfg.MCP
+}
+
+// GetPermissionRules returns permission rules from the config.
+func GetPermissionRules(cfg *Config) []PermissionRuleConfig {
+	if cfg == nil {
+		return nil
+	}
+	return cfg.Permissions.Rules
+}
+
+// GetDefaultPermissionDecision returns the default permission decision.
+func GetDefaultPermissionDecision(cfg *Config) string {
+	if cfg == nil || cfg.Permissions.DefaultDecision == "" {
+		return "ask"
+	}
+	return cfg.Permissions.DefaultDecision
+}
+
+// GetDefaultPermissionLevel returns the default permission level.
+func GetDefaultPermissionLevel(cfg *Config) string {
+	if cfg == nil || cfg.Permissions.DefaultLevel == "" {
+		return "once"
+	}
+	return cfg.Permissions.DefaultLevel
 }
 
 // Default returns a Config with sensible default values.

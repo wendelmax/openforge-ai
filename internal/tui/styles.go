@@ -75,7 +75,7 @@ func RenderTitle(width int) string {
 	return TitleStyle.Render(" ◆ OpenForge ")
 }
 
-func RenderStatusBar(width int, device, model string, tokensPerSec float64) string {
+func RenderStatusBar(width int, device, model string, tokensPerSec float64, yolo bool) string {
 	dev := StatusValue.Render(device)
 	mod := StatusValue.Render(model)
 
@@ -84,7 +84,12 @@ func RenderStatusBar(width int, device, model string, tokensPerSec float64) stri
 		tps = StatusValue.Render(fmt.Sprintf("%.1f tok/s", tokensPerSec))
 	}
 
-	left := fmt.Sprintf(" %s │ %s │ %s ", dev, mod, tps)
+	yoloStr := ""
+	if yolo {
+		yoloStr = StatusValue.Render("YOLO") + " │ "
+	}
+
+	left := fmt.Sprintf(" %s%s │ %s │ %s ", yoloStr, dev, mod, tps)
 	right := " /help • Ctrl+C "
 
 	spacing := width - lipgloss.Width(left) - lipgloss.Width(right)

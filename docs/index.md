@@ -1,66 +1,89 @@
 # OpenForge
 
-**AI Runtime for Developers — 100% Local, 100% OpenVINO**
+**AI Coding Agent — 100% Local, 100% Open Source**
 
 ---
 
-✔ Local First &nbsp;✔ OpenVINO Native &nbsp;✔ CPU / GPU / NPU  
-✔ Skills &nbsp;✔ Spec Driven &nbsp;✔ Open Source
+✔ Local First &nbsp;✔ Provider-Agnostic &nbsp;✔ NPU / GPU / CPU  
+✔ Agent Skills &nbsp;✔ Tools & Hooks &nbsp;✔ LSP & MCP
 
 ---
 
 ## What is OpenForge?
 
-OpenForge is an open-source AI inference framework that runs **exclusively on OpenVINO Runtime**. It lets you run LLMs, embeddings, and reranking models **entirely offline** on Intel hardware — no cloud, no Ollama, no LM Studio.
+OpenForge is an **AI coding agent** that runs entirely on your machine. It reads, writes, edits, and executes code through a tool-calling agent loop powered by local LLMs. No cloud, no API keys, no telemetry.
+
+It works with **any local inference runtime** — OpenVINO for Intel NPU/GPU, Ollama for GGUF models, llama.cpp for CPU-first inference, vLLM for multi-GPU setups, or LM Studio for a GUI experience.
 
 ## Why OpenForge?
 
 | Problem | Solution |
 |---------|----------|
-| Running LLMs locally requires complex setup | One binary, zero dependencies |
-| Ollama/LM Studio add overhead | Direct OpenVINO integration |
-| GPU/NPU detection is manual | Automatic device selection |
-| Prompt engineering is repetitive | Reusable Skills |
-| AI-generated code lacks quality | Spec-Driven Development |
+| AI coding tools require cloud APIs | **100% local inference** — OpenVINO, Ollama, llama.cpp |
+| Agent tools are hard-coded per provider | **Provider-agnostic** agent loop — swap runtime, keep tools |
+| No control over what the agent does | **Hooks system** — PreToolUse/PostToolUse shell scripts |
+| LSP integration is IDE-specific | **Built-in LSP Manager** — gopls, ts, rust, python auto-detect |
+| Prompt engineering is repetitive | **Reusable Skills** — SKILL.md + YAML pipelines |
+| Proprietary MCP tools are vendor-locked | **Native MCP client** — open protocol, any server |
 
 ## Quick Start
 
 ```bash
-# Install
-curl -fsSL https://openforge.ai/install.sh | bash
+# Install a local runtime
+openforge provider install ollama
+ollama pull llama3.2:3b
 
-# Start server
+# Start the agent
+openforge
+
+# Or start the API server
 openforge serve
-
-# Chat
-curl http://localhost:9090/v1/chat \
-  -H "Content-Type: application/json" \
-  -d '{"model":"llama-3.2-3b","messages":[{"role":"user","content":"Hello"}]}'
 ```
 
-## 5-Minute Tour
+## Architecture
 
-1. **Install** the binary
-2. **Download** an OpenVINO model
-3. **Start** the server
-4. **Connect** OpenCode or any OpenAI-compatible client
-5. **Extend** with Skills
+OpenForge is built in **Go** with a layered, modular architecture:
 
-## Performance
+```
+Agent Loop → Tool System → Provider Manager → Local Runtimes
+                ↓
+        Hooks · LSP · MCP · Skills
+```
 
-| Model | CPU | GPU | NPU |
-|-------|----:|----:|----:|
-| Phi-3 Mini | 18 t/s | 32 t/s | 41 t/s |
-| Llama 3.2 3B | 12 t/s | 22 t/s | 28 t/s |
-| BGE Small (embed) | 15ms | 8ms | 5ms |
+### Layers
 
-## Ecosystem
+| Layer | Package | Responsibility |
+|-------|---------|---------------|
+| **Agent Loop** | `internal/agent/` | input → LLM → tool calls → execute → feedback |
+| **Tool System** | `internal/tool/` | bash, view, write, edit, grep, glob, ls, todos, fetch |
+| **Provider Manager** | `internal/pm/` | Auto-discovery, chain selection, lifecycle (5 providers) |
+| **Hooks** | `internal/hooks/` | Pre/post tool-use shell scripts |
+| **LSP** | `internal/lsp/` | Auto-detect + manage language servers |
+| **MCP** | `internal/mcp/` | Model Context Protocol client |
+| **Skills** | `internal/skill/` | YAML pipelines + SKILL.md loader |
+| **TUI** | `internal/tui/` | Bubble Tea terminal UI with streaming |
+| **Server** | `internal/server/` | Gin HTTP server, OpenAI-compatible API |
+| **Config** | `internal/config/` | Viper YAML config with env override |
 
-- **OpenCode** — native provider
-- **Superpowers** — spec-driven agent
-- **VS Code** — autocomplete extension
-- **OpenAI API** — drop-in replacement
+## Session de 5 Minutos
 
-## License
+1. **[Instale](docs/getting-started/provider-installation.md)** um runtime local
+2. **[Inicie](docs/getting-started/quickstart.md)** o agente ou servidor
+3. **[Conecte](docs/community/dashboard.md)** qualquer cliente OpenAI-compatível
+4. **[Estenda](docs/skills/creating-skills.md)** com Skills e Hooks
+5. **[Contribua](docs/contributing.md)** com código, docs ou feedback
+
+## Ecossistema
+
+- **OpenCode** — provedor nativo (via API OpenAI-compatível)
+- **VS Code** — extensão autocomplete
+- **Superpowers** — skills spec-driven
+- **Qualquer cliente OpenAI** — drop-in replacement
+
+## Licença
 
 Apache 2.0 — Free for personal and commercial use.
+
+---
+
+[Guia de Providers](docs/getting-started/provider-installation.md) · [Arquitetura](docs/architecture.md) · [ADRs](docs/adr/) · [API](docs/api-reference.md) · [Contribuindo](docs/contributing.md)

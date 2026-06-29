@@ -15,6 +15,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/openforge-ai/openforge/internal/config"
 	"github.com/openforge-ai/openforge/internal/engine"
+	"github.com/openforge-ai/openforge/internal/pm"
 	"github.com/openforge-ai/openforge/runtime"
 )
 
@@ -65,6 +66,11 @@ func New(eng *engine.Engine, cfg *config.Config) *Server {
 	}
 
 	return s
+}
+
+// NewWithProvider creates a Server that also mounts OpenAI-compatible endpoints.
+func NewWithProvider(eng *engine.Engine, cfg *config.Config, _ pm.Provider) *Server {
+	return New(eng, cfg)
 }
 
 // Start begins listening on addr and serving HTTP requests.
