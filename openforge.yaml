@@ -1,5 +1,5 @@
 # OpenForge configuration — auto-generated
-# Edit as needed
+# Edit as needed 
 
 providers:
   chain: [openvino, ollama, llamacpp, vllm, lmstudio]
