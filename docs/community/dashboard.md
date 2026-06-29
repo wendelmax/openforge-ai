@@ -29,19 +29,16 @@ Real-time status and health of the OpenForge project.
 
 ## Test Coverage
 
-```
-Package                           Coverage
-───────────────────────────────────────────
-cache                              100.0%
-config                             100.0%
-engine                              100.0%
-provider/openvino                   100.0% (non-CGO)
-server                              100.0%
-skill                               100.0%
-runtime                              — (interface only)
-───────────────────────────────────────────
-Total                               ~85%
-```
+| Package | Coverage |
+|:--------|:--------:|
+| cache | 100.0% |
+| config | 100.0% |
+| engine | 100.0% |
+| provider/openvino | 100.0% (non-CGO) |
+| server | 100.0% |
+| skill | 100.0% |
+| runtime | — (interface only) |
+| **Total** | **~85%** |
 
 ## Community
 

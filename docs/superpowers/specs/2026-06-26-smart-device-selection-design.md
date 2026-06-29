@@ -141,22 +141,27 @@ If `workloads` is set to a device name (e.g., `chat: "NPU"`), it's fixed. If set
 
 ### Data Flow
 
-```
-Request arrives
-  device specified? ──yes──→ use that device
-  no↓
-  workloads table has mapping? ──yes──→ use mapped device
-  no↓
-  benchmark enabled? ──yes──→ use benchmarked best device
-  no↓
-  use static priority (GPU > NPU > CPU)
-  ↓
-  runtime.LoadModel(modelID, device)
-    → check compiledByDevice[device]
-    → cache hit? use cached
-    → cache miss? compile, cache, use
-  ↓
-  Infer/Embed on selected compiled model
+```mermaid
+graph TD
+    Start["Request arrives"]
+    Start --> Q1{"device specified?"}
+    Q1 -->|"yes"| UseDevice["use that device"]
+    Q1 -->|"no"| Q2{"workloads table has mapping?"}
+    Q2 -->|"yes"| UseMapped["use mapped device"]
+    Q2 -->|"no"| Q3{"benchmark enabled?"}
+    Q3 -->|"yes"| UseBench["use benchmarked best device"]
+    Q3 -->|"no"| UseStatic["use static priority (GPU > NPU > CPU)"]
+    UseDevice --> Load
+    UseMapped --> Load
+    UseBench --> Load
+    UseStatic --> Load
+    Load["runtime.LoadModel(modelID, device)"]
+    Load --> Cache{"compile cache hit?"}
+    Cache -->|"yes"| UseCached["use cached"]
+    Cache -->|"no"| Compile["compile, cache, use"]
+    UseCached --> Infer
+    Compile --> Infer
+    Infer["Infer/Embed on selected compiled model"]
 ```
 
 ### Config Changes

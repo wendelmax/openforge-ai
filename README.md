@@ -82,40 +82,35 @@ curl -X POST http://localhost:9090/v1/chat/completions \
 
 ## Arquitetura
 
-```
-┌──────────────────────────────────────────────────────────────┐
-│                     OpenForge Agent                           │
-│                                                               │
-│  ┌─────────┐  ┌──────────┐  ┌──────────┐  ┌──────────────┐ │
-│  │   TUI   │  │   HTTP   │  │   CLI    │  │   gRPC       │ │
-│  │ Bub Tea │  │   Gin    │  │  Cobra   │  │  (future)    │ │
-│  └────┬────┘  └────┬─────┘  └────┬─────┘  └──────┬───────┘ │
-│       └────────────┼─────────────┼────────────────┘          │
-│                    ▼             ▼                            │
-│  ┌──────────────────────────────────────────────────────┐    │
-│  │                   Agent Loop                          │    │
-│  │  input → LLM → tool calls → execute → feedback → loop│    │
-│  │  Coordinator: coder | explore | plan | verify        │    │
-│  └──────────┬───────────────────────────────────────────┘    │
-│             │                                                 │
-│  ┌──────────┴───────────────────────────────────────────┐    │
-│  │                   Tool System                          │    │
-│  │  bash  view  write  edit  grep  glob  ls  todos       │    │
-│  │  fetch  mcp_tool  (extensible)                         │    │
-│  └──────────┬───────────────────────────────────────────┘    │
-│             │                                                 │
-│  ┌──────────┴───────────────────────────────────────────┐    │
-│  │              Provider Manager                          │    │
-│  │  ┌──────────┐ ┌────────┐ ┌──────────┐ ┌──────────┐  │    │
-│  │  │ OpenVINO │ │ Ollama │ │ llama.cpp│ │ OpenAI   │  │    │
-│  │  │ NPU/GPU  │ │ HTTP   │ │ HTTP     │ │ compat   │  │    │
-│  │  └──────────┘ └────────┘ └──────────┘ └──────────┘  │    │
-│  └───────────────────────────────────────────────────────┘    │
-│             │                                                 │
-│  ┌──────────┴───────────────────────────────────────────┐    │
-│  │  Cross-cutting: Hooks, LSP, MCP, Permissions, Cache  │    │
-│  └──────────────────────────────────────────────────────┘    │
-└──────────────────────────────────────────────────────────────┘
+```mermaid
+graph TB
+    subgraph Agent["OpenForge Agent"]
+        direction TB
+        TUI["TUI<br/>Bubble Tea"]
+        HTTP["HTTP<br/>Gin"]
+        CLI["CLI<br/>Cobra"]
+        GRPC["gRPC<br/>(future)"]
+
+        TUI --> Loop
+        HTTP --> Loop
+        CLI --> Loop
+        GRPC --> Loop
+
+        Loop["Agent Loop<br/>input → LLM → tool calls → execute → feedback → loop<br/>Coordinator: coder | explore | plan | verify"]
+
+        Loop --> Tools["Tool System<br/>bash view write edit grep glob ls todos<br/>fetch mcp_tool (extensible)"]
+
+        Tools --> PM
+
+        subgraph Providers["Provider Manager"]
+            OV["OpenVINO<br/>NPU/GPU"]
+            OL["Ollama<br/>HTTP"]
+            LC["llama.cpp<br/>HTTP"]
+            OA["OpenAI<br/>compat"]
+        end
+
+        PM --> Cross["Cross-cutting: Hooks, LSP, MCP, Permissions, Cache"]
+    end
 ```
 
 ## Providers

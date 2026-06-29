@@ -6,10 +6,11 @@ OpenForge is designed for **offline-first** operation. All inference runs locall
 
 ## Data Flow
 
-```
-User Input → OpenForge Process → OpenVINO Runtime → Local Hardware
-    │                                                      │
-    └───── All data stays here ────────────────────────────┘
+```mermaid
+graph LR
+    UI["User Input"] --> OF["OpenForge Process"] --> OV["OpenVINO Runtime"] --> HW["Local Hardware"]
+    UI -.- B["All data stays here"]
+    HW -.- B
 ```
 
 - **No external API calls** during inference

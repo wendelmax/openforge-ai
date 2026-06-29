@@ -6,19 +6,13 @@ Real projects and workflows powered by OpenForge.
 
 Developers using OpenForge as an OpenCode provider get:
 
-```
-┌─────────────────────────────────────────────┐
-│  VS Code                                     │
-│  ┌───────────────────────────────────────┐   │
-│  │  func main() {                        │   │
-│  │    fmt.Println("Hello, █")            │   │
-│  │  }                                    │   │
-│  └───────────────────────────────────────┘   │
-│  ┌───────────────────────────────────────┐   │
-│  │  OpenForge: World!                     │   │
-│  │  [Tab] to accept  [Esc] to dismiss    │   │
-│  └───────────────────────────────────────┘   │
-└─────────────────────────────────────────────┘
+```mermaid
+graph TB
+    subgraph VSCode["VS Code"]
+        Editor["func main() {<br/>  fmt.Println('Hello, █')<br/>}"]
+        Suggestion["OpenForge: World!<br/>[Tab] to accept  [Esc] to dismiss"]
+        Editor --- Suggestion
+    end
 ```
 
 **Autocomplete latency**: ~150ms on NPU
@@ -52,25 +46,14 @@ openforge skill run java:spring-init \
 
 ## RAG Pipeline for Documentation
 
-```
-Developer query: "How do I configure OpenForge for NPU?"
-        │
-        ▼
-[Embedding: BGE Small → search vector DB]
-        │
-        ▼
-[Found 3 relevant doc chunks]
-        │
-        ▼
-[Rerank: BGE Reranker → top 2]
-        │
-        ▼
-[Generate: Llama 3.2 3B → answer with citations]
-        │
-        ▼
-"To use NPU, set `device: NPU` in config.yaml.
- The NPU is available on Intel Core Ultra processors.
- Source: docs/getting-started/installation.md (line 42)"
+```mermaid
+graph TB
+    Q["Developer query:<br/>'How do I configure OpenForge for NPU?'"]
+    Q --> E["Embedding: BGE Small → search vector DB"]
+    E --> F["Found 3 relevant doc chunks"]
+    F --> R["Rerank: BGE Reranker → top 2"]
+    R --> G["Generate: Llama 3.2 3B → answer with citations"]
+    G --> A["To use NPU, set device: NPU in config.yaml.<br/>The NPU is available on Intel Core Ultra processors.<br/>Source: docs/getting-started/installation.md (line 42)"]
 ```
 
 **End-to-end latency**: ~800ms

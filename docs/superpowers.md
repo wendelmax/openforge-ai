@@ -6,14 +6,13 @@ OpenForge works as a native **provider** for OpenCode and is compatible with the
 
 ## Architecture
 
-```
-OpenCode CLI
-    │
-    ├── Superpowers plugin (SKILL.md methodology)
-    │       └── Skills discovered via OpenCode's `config.skills.paths`
-    │
-    └── OpenForge provider (AI inference)
-            └── API at http://localhost:9090/v1
+```mermaid
+graph TB
+    OC["OpenCode CLI"]
+    OC --> SP["Superpowers plugin<br/>(SKILL.md methodology)"]
+    OC --> OF["OpenForge provider<br/>(AI inference)"]
+    SP --> SK["Skills discovered via<br/>OpenCode's config.skills.paths"]
+    OF --> API["API at http://localhost:9090/v1"]
 ```
 
 **Layers don't conflict:**

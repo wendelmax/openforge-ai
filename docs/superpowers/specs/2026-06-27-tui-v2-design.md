@@ -12,27 +12,17 @@ Goal: a Claude Code / opencode-like readline chat interface — minimal, respons
 
 ## Layout
 
-```
-┌─ ◆ OpenForge ─── phi-3 │ GPU │ 45.2 tok/s ────────────────────────┐  ← header
-├───────────────────────────────────────────────────────────────────┤
-│  ┃ You                                                             │
-│  explica computação quântica                                       │  ← viewport
-│                                                                   │  (scrollável:
-│  ┃ Assistant                                                      │   ↑↓ PgUp PgDn)
-│  Computação quântica usa **qubits**...                            │
-│                                                                   │
-│  ┃ You                                                             │
-│  /model                                                            │
-│                                                                   │
-│  ┃ Assistant                                                      │
-│  Modelos disponíveis: phi-3-mini, llama-3b                         │
-│                                                                   │
-├───────────────────────────────────────────────────────────────────┤
-│ ❯ /mod█                                                            │  ← input
-│  /model  /help  /device  /clear  /exit                              │  ← sugestões
-│ ───────────────────────────────────────────────────────────────── │  ← separator
-│ GPU │ phi-3 │ 45.2 tok/s ────────────── /help • Ctrl+C            │  ← status bar
-└───────────────────────────────────────────────────────────────────┘
+```mermaid
+graph TB
+    subgraph Layout["TUI v2 Layout (5 zones)"]
+        Header["◆ OpenForge ─── phi-3 │ GPU │ 45.2 tok/s ───────"]
+        Viewport["┃ You<br/>explica computação quântica<br/><br/>┃ Assistant<br/>Computação quântica usa **qubits**...<br/><br/>┃ You<br/>/model<br/><br/>┃ Assistant<br/>Modelos disponíveis: phi-3-mini, llama-3b<br/><br/>(scrollable: ↑↓ PgUp PgDn)"]
+        Input["❯ /mod█"]
+        Suggestions["/model  /help  /device  /clear  /exit"]
+        Status["GPU │ phi-3 │ 45.2 tok/s ───── /help • Ctrl+C"]
+
+        Header --- Viewport --- Input --- Suggestions --- Status
+    end
 ```
 
 Five zones, top to bottom:
@@ -44,19 +34,16 @@ Five zones, top to bottom:
 
 ## Architecture
 
-```
-┌───────────────────────────────────────────────┐
-│                  TUIModel                      │
-│  ┌──────────┐  ┌──────────┐  ┌─────────────┐  │
-│  │ viewport  │  │ textinput│  │ completion   │  │
-│  │ bubbles/  │  │ bubbles/ │  │ engine       │  │
-│  │ viewport  │  │ textinput│  │ (internal)   │  │
-│  └──────────┘  └──────────┘  └─────────────┘  │
-│  ┌──────────┐  ┌──────────┐  ┌─────────────┐  │
-│  │ glamour  │  │ lipgloss │  │ runtime      │  │
-│  │ markdown │  │ styles   │  │ (streaming)  │  │
-│  └──────────┘  └──────────┘  └─────────────┘  │
-└───────────────────────────────────────────────┘
+```mermaid
+graph TB
+    subgraph TUIModel["TUIModel"]
+        Viewport["viewport<br/>bubbles/viewport"]
+        TextInput["textinput<br/>bubbles/textinput"]
+        Completion["completion<br/>engine (internal)"]
+        Glamour["glamour<br/>markdown"]
+        Lipgloss["lipgloss<br/>styles"]
+        Runtime["runtime<br/>(streaming)"]
+    end
 ```
 
 ### Components
@@ -72,26 +59,19 @@ Five zones, top to bottom:
 
 ### Data Flow
 
-```
-User types text
-      │
-      ▼
-textinput.Update() → TUIModel.Update()
-      │
-      ├── Tab pressed ──→ completion.Next() → update suggestions bar
-      ├── Enter pressed ──→ submit input
-      │     ├── starts with "/" → handleCommand()
-      │     └── else → runInference() → spawns goroutine
-      │                       │
-      │                       ▼
-      │              Stream tokens via program.Send()
-      │                       │
-      │                       ▼
-      │              TUIModel receives inferenceTokenMsg
-      │              → appends to current partial response
-      │              → updates viewport content
-      │
-      └── WindowSizeMsg ──→ resize viewport + input + status bar
+```mermaid
+graph TB
+    User["User types text"]
+    User --> TI["textinput.Update() → TUIModel.Update()"]
+    TI -->|"Tab pressed"| Comp["completion.Next() → update suggestions bar"]
+    TI -->|"Enter pressed"| Submit["submit input"]
+    Submit -->|"starts with /"| Cmd["handleCommand()"]
+    Submit -->|"else"| Inf["runInference() → spawns goroutine"]
+    Inf --> Stream["Stream tokens via program.Send()"]
+    Stream --> Recv["TUIModel receives inferenceTokenMsg"]
+    Recv --> Append["appends to current partial response"]
+    Append --> VP["updates viewport content"]
+    TI -->|"WindowSizeMsg"| Resize["resize viewport + input + status bar"]
 ```
 
 ## Features

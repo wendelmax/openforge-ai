@@ -6,13 +6,13 @@ Plugins extend OpenForge's capabilities without modifying core code.
 
 ## Overview
 
-```
-Plugin
-  │
-  ├── Manifest (plugin.yaml)
-  ├── Hooks (lifecycle callbacks)
-  ├── Provider (inference backend)
-  └── Skills (pipeline steps)
+```mermaid
+graph TB
+    Plugin
+    Plugin --> Manifest["Manifest (plugin.yaml)"]
+    Plugin --> Hooks["Hooks (lifecycle callbacks)"]
+    Plugin --> Provider["Provider (inference backend)"]
+    Plugin --> Skills["Skills (pipeline steps)"]
 ```
 
 ## Types of Plugins
@@ -44,12 +44,14 @@ type ProviderPlugin interface {
 
 ### Lifecycle
 
-```
-1. Load: plugin.Open("provider.so")
-2. Init: Lookup("Plugin") → call Initialize()
-3. Register: Add to provider registry
-4. Use: Engine routes inference to plugin
-5. Stop: Shutdown() → Close()
+```mermaid
+graph TB
+    L1["1. Load: plugin.Open('provider.so')"]
+    L2["2. Init: Lookup('Plugin') → call Initialize()"]
+    L3["3. Register: Add to provider registry"]
+    L4["4. Use: Engine routes inference to plugin"]
+    L5["5. Stop: Shutdown() → Close()"]
+    L1 --> L2 --> L3 --> L4 --> L5
 ```
 
 ### Example

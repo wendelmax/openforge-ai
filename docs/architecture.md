@@ -2,53 +2,45 @@
 
 ## High-Level Overview
 
-```
-┌──────────────────────────────────────────────┐
-│              OpenCode / Superpowers            │
-│             (IDE, CLI, VS Code, IntelliJ)      │
-└────────────────────┬─────────────────────────┘
-                     │ HTTP REST (OpenAI-compatible)
-                     ▼
-┌──────────────────────────────────────────────┐
-│              OpenForge API Layer               │
-│                   (Gin HTTP)                   │
-│  /v1/chat  /v1/completion  /v1/embeddings     │
-│  /v1/rerank  /v1/models  /v1/devices          │
-└────────────────────┬─────────────────────────┘
-                     │
-                     ▼
-┌──────────────────────────────────────────────┐
-│                 AI Engine                      │
-│  Session Manager │ Context Manager            │
-│  Cache Manager   │ Skill Executor             │
-│  Pipeline Engine │ Telemetry Collector        │
-└────────────────────┬─────────────────────────┘
-                     │
-                     ▼
-┌──────────────────────────────────────────────┐
-│               Provider Layer                   │
-│  ┌─────────────────────────────────────────┐  │
-│  │         OpenVINO Provider                │  │
-│  │  Model Lifecycle │ Device Detection     │  │
-│  │  Inference       │ Embedding            │  │
-│  └─────────────────────────────────────────┘  │
-│  ┌─────────────────────────────────────────┐  │
-│  │  Plugin API (future)                    │  │
-│  │  Custom providers via .so/.dll          │  │
-│  └─────────────────────────────────────────┘  │
-└────────────────────┬─────────────────────────┘
-                     │
-                     ▼
-┌──────────────────────────────────────────────┐
-│              OpenVINO Runtime                  │
-│  Core │ Inference Engine │ Model Loading      │
-│  Device Discovery │ Tensor Management         │
-└────────────────────┬─────────────────────────┘
-                     │
-         ┌───────────┼───────────┐
-         ▼           ▼           ▼
-       CPU         GPU         NPU
-    (x86_64)   (Iris/Arc)   (AI Boost)
+```mermaid
+graph TB
+    OC["OpenCode / Superpowers<br/>(IDE, CLI, VS Code, IntelliJ)"]
+    OC -->|"HTTP REST (OpenAI-compatible)"| API
+
+    subgraph API_Layer["OpenForge API Layer (Gin HTTP)"]
+        API["/v1/chat  /v1/completion  /v1/embeddings<br/>/v1/rerank  /v1/models  /v1/devices"]
+    end
+
+    API --> Engine
+
+    subgraph Engine_Layer["AI Engine"]
+        Engine["Session Manager | Context Manager<br/>Cache Manager | Skill Executor<br/>Pipeline Engine | Telemetry Collector"]
+    end
+
+    Engine --> Provider
+
+    subgraph Provider_Layer["Provider Layer"]
+        subgraph OV["OpenVINO Provider"]
+            OV1["Model Lifecycle | Device Detection<br/>Inference | Embedding"]
+        end
+        subgraph Plugin["Plugin API (future)"]
+            P1["Custom providers via .so/.dll"]
+        end
+    end
+
+    Provider --> OVR
+
+    subgraph OVR_Layer["OpenVINO Runtime"]
+        OVR["Core | Inference Engine | Model Loading<br/>Device Discovery | Tensor Management"]
+    end
+
+    OVR --> CPU
+    OVR --> GPU
+    OVR --> NPU
+
+    CPU["CPU (x86_64)"]
+    GPU["GPU (Iris/Arc)"]
+    NPU["NPU (AI Boost)"]
 ```
 
 ## Layer Responsibilities
@@ -80,14 +72,12 @@
 
 ## Dependency Flow
 
-```
-API Layer ──→ Engine ──→ Provider ──→ OpenVINO Runtime
-    │            │            │
-    │            │            └── Device drivers (GPU, NPU)
-    │            │
-    │            └── SQLite (cache, sessions, embeddings)
-    │
-    └── Logging (slog) / Metrics (OpenTelemetry)
+```mermaid
+graph TD
+    API["API Layer"] --> Engine["Engine"] --> Provider["Provider"] --> OVR["OpenVINO Runtime"]
+    API -.-> Log["Logging (slog) / Metrics (OpenTelemetry)"]
+    Engine -.-> SQLite["SQLite (cache, sessions, embeddings)"]
+    Provider -.-> Drivers["Device drivers (GPU, NPU)"]
 ```
 
 Rules:
@@ -124,21 +114,36 @@ Rules:
 
 ## Data Flow: Chat Request
 
-```
-1. HTTP POST /v1/chat
-2. API validates request body
-3. Engine retrieves/creates session
-4. Engine appends user message to context
-5. Engine checks response cache (hash = model + messages + params)
-   ├── Cache HIT  → return cached response immediately
-   └── Cache MISS → continue
-6. Engine calls Provider.Infer()
-7. Provider compiles prompt from messages
-8. Provider tokenizes input
-9. OpenVINO runs inference loop (autoregressive generation)
-10. Provider detokenizes output
-11. Engine caches response
-12. Engine returns response (streaming or complete)
+```mermaid
+sequenceDiagram
+    participant Client
+    participant API
+    participant Engine
+    participant Cache
+    participant Provider
+    participant OpenVINO
+
+    Client->>API: HTTP POST /v1/chat
+    API->>API: validate request body
+    API->>Engine: retrieve/create session
+    Engine->>Engine: append user message to context
+    Engine->>Cache: check response cache (hash = model + messages + params)
+    alt Cache HIT
+        Cache-->>Engine: return cached response
+        Engine-->>API: cached response
+        API-->>Client: response
+    else Cache MISS
+        Engine->>Provider: Provider.Infer()
+        Provider->>Provider: compile prompt from messages
+        Provider->>Provider: tokenize input
+        Provider->>OpenVINO: inference loop (autoregressive generation)
+        OpenVINO-->>Provider: output tokens
+        Provider->>Provider: detokenize output
+        Provider-->>Engine: response
+        Engine->>Cache: cache response
+        Engine-->>API: response (streaming or complete)
+        API-->>Client: response
+    end
 ```
 
 ## Thread Safety
@@ -155,12 +160,12 @@ All components are designed for concurrent access:
 
 ## Graceful Shutdown
 
-```
-SIGTERM/SIGINT
-  → Server stops accepting connections
-  → In-flight requests complete (with timeout)
-  → Sessions persist to disk
-  → Models unload from devices
-  → Cache flushed to SQLite
-  → Process exits
+```mermaid
+graph TD
+    A["SIGTERM/SIGINT"] --> B["Server stops accepting connections"]
+    B --> C["In-flight requests complete (with timeout)"]
+    C --> D["Sessions persist to disk"]
+    D --> E["Models unload from devices"]
+    E --> F["Cache flushed to SQLite"]
+    F --> G["Process exits"]
 ```

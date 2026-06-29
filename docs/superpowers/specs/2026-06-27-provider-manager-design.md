@@ -271,24 +271,28 @@ O init:
 
 ## Estrutura de Diretórios
 
-```
-internal/pm/
-├── pm.go              # ProviderManager (orquestrador)
-├── types.go           # Tipos: ProviderType, ProviderStatus, ProviderInfo
-├── discovery.go       # Auto-detecção de providers instalados
-├── install.go         # Instalação guiada e automática
-├── config.go          # Geração de configuração
-├── chain.go           # Lógica de chain/resolution
-├── health.go          # Health check de providers
-├── providers/         # Implementações
-│   ├── openvino.go
-│   ├── ollama.go
-│   ├── llamacpp.go
-│   ├── vllm.go
-│   └── lmstudio.go
-└── installers/        # Scripts de instalação por SO
-    ├── ollama.go
-    ├── openvino.go
-    ├── llamacpp.go
-    └── vllm.go
+```mermaid
+graph TB
+    subgraph internal_pm["internal/pm/"]
+        PM["pm.go<br/>ProviderManager (orchestrator)"]
+        Types["types.go<br/>ProviderType, ProviderStatus, ProviderInfo"]
+        Discovery["discovery.go<br/>Auto-detection of installed providers"]
+        Install["install.go<br/>Guided and automatic installation"]
+        Config["config.go<br/>Configuration generation"]
+        Chain["chain.go<br/>Chain/resolution logic"]
+        Health["health.go<br/>Provider health checks"]
+        subgraph Providers["providers/"]
+            OV["openvino.go"]
+            OL["ollama.go"]
+            LC["llamacpp.go"]
+            VLLM["vllm.go"]
+            LM["lmstudio.go"]
+        end
+        subgraph Installers["installers/"]
+            IOV["ollama.go"]
+            IOL["openvino.go"]
+            ILC["llamacpp.go"]
+            IVL["vllm.go"]
+        end
+    end
 ```
