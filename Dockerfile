@@ -6,7 +6,7 @@ COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
 
-RUN source build/builder-env.sh && \
+RUN . build/builder-env.sh && \
     go build -ldflags="-s -w -X github.com/openforge-ai/openforge/cmd/openforge/cmd.Version=$(git describe --tags --always 2>/dev/null || echo dev)" \
     -o openforge ./cmd/openforge
 
@@ -28,6 +28,7 @@ COPY --from=builder /opt/openvino/runtime/lib/intel64/libopenvino_intel_gpu_plug
 COPY --from=builder /opt/openvino/runtime/lib/intel64/libopenvino_intel_npu_plugin.so /usr/local/lib/
 COPY --from=builder /opt/openvino/runtime/lib/intel64/libopenvino_ir_frontend.so* /usr/local/lib/
 COPY --from=builder /opt/openvino/runtime/lib/intel64/cache.json /usr/local/lib/
+COPY --from=builder /opt/openvino/runtime/3rdparty/tbb/lib/libtbb* /usr/local/lib/
 RUN ldconfig
 
 COPY --from=builder /build/openforge /usr/local/bin/openforge

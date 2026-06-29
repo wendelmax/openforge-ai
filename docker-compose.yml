@@ -10,11 +10,11 @@ services:
       - ./models:/home/openforge/models
       - ./data:/home/openforge/data
       - ./config.yaml:/home/openforge/config.yaml:ro
-    devices:
-      - /dev/dri:/dev/dri
+#    devices:
+#      - /dev/dri:/dev/dri
     environment:
-      - OPENFORGE_SERVER_HOST=0.0.0.0
-      - OPENFORGE_MODELS_PATH=/home/openforge/models
-      - OPENFORGE_MODELS_DEVICE=auto
-      - OPENFORGE_LOGGING_LEVEL=info
+      - OPENFORGE_HOST=0.0.0.0
+      - OPENFORGE_MODEL_PATH=/home/openforge/models
+      - OPENFORGE_DEVICE=auto
+      - OPENFORGE_LOG_LEVEL=info
     restart: unless-stopped
