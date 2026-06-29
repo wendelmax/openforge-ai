@@ -5,6 +5,8 @@ package pm
 import (
 	"context"
 	"time"
+
+	"github.com/openforge-ai/openforge/runtime"
 )
 
 // ProviderType identifies a local inference runtime.
@@ -68,6 +70,18 @@ type ProviderHealth struct {
 	Error   string         `json:"error,omitempty"`
 }
 
+func HealthError(err error) *ProviderHealth {
+	return &ProviderHealth{Status: StatusError, Error: err.Error()}
+}
+
+func HealthUnavailable(reason string) *ProviderHealth {
+	return &ProviderHealth{Status: StatusUnavailable, Error: reason}
+}
+
+func HealthAvailable() *ProviderHealth {
+	return &ProviderHealth{Status: StatusAvailable}
+}
+
 // ToolDef describes a tool available to the model (OpenAI function format).
 type ToolDef struct {
 	Type     string      `json:"type"` // "function"
@@ -119,21 +133,21 @@ type Message struct {
 
 // ChatResponse is a provider-agnostic chat completion response.
 type ChatResponse struct {
-	Model     string       `json:"model"`
-	Content   string       `json:"content"`
-	ToolCalls []ToolCall   `json:"tool_calls,omitempty"`
-	Usage     *Usage       `json:"usage,omitempty"`
-	Provider  ProviderType `json:"provider"`
-	Device    string       `json:"device,omitempty"`
+	Model     string        `json:"model"`
+	Content   string        `json:"content"`
+	ToolCalls []ToolCall    `json:"tool_calls,omitempty"`
+	Usage     *runtime.Usage `json:"usage,omitempty"`
+	Provider  ProviderType  `json:"provider"`
+	Device    string        `json:"device,omitempty"`
 }
 
 // Token is a single streaming token from a ChatStream call.
 type Token struct {
-	Content    string     `json:"content"`
-	Model      string     `json:"model,omitempty"`
-	Done       bool       `json:"done"`
-	ToolCalls  []ToolCall `json:"tool_calls,omitempty"`
-	Usage      *Usage     `json:"usage,omitempty"`
+	Content   string        `json:"content"`
+	Model     string        `json:"model,omitempty"`
+	Done      bool          `json:"done"`
+	ToolCalls []ToolCall    `json:"tool_calls,omitempty"`
+	Usage     *runtime.Usage `json:"usage,omitempty"`
 }
 
 // EmbedRequest is a provider-agnostic embedding request.
@@ -145,17 +159,10 @@ type EmbedRequest struct {
 
 // EmbedResponse is a provider-agnostic embedding response.
 type EmbedResponse struct {
-	Model      string       `json:"model"`
-	Embeddings [][]float32  `json:"embeddings"`
-	Usage      *Usage       `json:"usage,omitempty"`
-	Provider   ProviderType `json:"provider"`
-}
-
-// Usage tracks token consumption.
-type Usage struct {
-	PromptTokens     int `json:"prompt_tokens"`
-	CompletionTokens int `json:"completion_tokens"`
-	TotalTokens      int `json:"total_tokens"`
+	Model      string        `json:"model"`
+	Embeddings [][]float32   `json:"embeddings"`
+	Usage      *runtime.Usage `json:"usage,omitempty"`
+	Provider   ProviderType  `json:"provider"`
 }
 
 // Model describes a model available through a provider.

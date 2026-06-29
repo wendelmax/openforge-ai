@@ -10,6 +10,7 @@ import (
 	"time"
 
 	pm "github.com/openforge-ai/openforge/internal/pm"
+	"github.com/openforge-ai/openforge/runtime"
 )
 
 // OllamaProvider implements pm.Provider for the Ollama runtime.
@@ -46,22 +47,27 @@ func (p *OllamaProvider) Status(ctx context.Context) (*pm.ProviderHealth, error)
 	start := time.Now()
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, p.baseURL+"/api/tags", nil)
 	if err != nil {
-		return &pm.ProviderHealth{Status: pm.StatusError, Error: err.Error()}, nil
+		return pm.HealthError(err), nil
 	}
 	resp, err := p.client.Do(req)
 	if err != nil {
-		return &pm.ProviderHealth{Status: pm.StatusUnavailable, Error: err.Error()}, nil
+		return pm.HealthUnavailable(err.Error()), nil
 	}
 	defer resp.Body.Close()
 	latency := time.Since(start)
 	if resp.StatusCode != http.StatusOK {
-		return &pm.ProviderHealth{Status: pm.StatusError, Error: fmt.Sprintf("HTTP %d", resp.StatusCode), Latency: latency}, nil
+		h := pm.HealthError(fmt.Errorf("HTTP %d", resp.StatusCode))
+		h.Latency = latency
+		return h, nil
 	}
 	var tags struct{ Models []struct{ Name string `json:"name"` } `json:"models"` }
-	if json.NewDecoder(resp.Body).Decode(&tags) != nil {
-		return &pm.ProviderHealth{Status: pm.StatusAvailable, Latency: latency}, nil
+	h := pm.HealthAvailable()
+	h.Latency = latency
+	if json.NewDecoder(resp.Body).Decode(&tags) == nil {
+		h.Models = len(tags.Models)
+		h.Devices = []string{"CPU"}
 	}
-	return &pm.ProviderHealth{Status: pm.StatusAvailable, Latency: latency, Models: len(tags.Models), Devices: []string{"CPU"}}, nil
+	return h, nil
 }
 
 // --- Ollama API types ---
@@ -175,7 +181,7 @@ func (p *OllamaProvider) Chat(ctx context.Context, req *pm.ChatRequest) (*pm.Cha
 	}
 	var oResp ollamaChatResp
 	if err := json.NewDecoder(resp.Body).Decode(&oResp); err != nil { return nil, fmt.Errorf("ollama chat decode: %w", err) }
-	return &pm.ChatResponse{Model: oResp.Model, Content: oResp.Message.Content, ToolCalls: parseOllamaToolCalls(oResp.Message.ToolCalls), Usage: &pm.Usage{CompletionTokens: oResp.EvalCount}, Provider: pm.ProviderOllama}, nil
+	return &pm.ChatResponse{Model: oResp.Model, Content: oResp.Message.Content, ToolCalls: parseOllamaToolCalls(oResp.Message.ToolCalls), Usage: &runtime.Usage{CompletionTokens: oResp.EvalCount}, Provider: pm.ProviderOllama}, nil
 }
 
 // --- ChatStream ---
@@ -204,7 +210,7 @@ func (p *OllamaProvider) ChatStream(ctx context.Context, req *pm.ChatRequest) (<
 			}
 			tok := pm.Token{Content: oResp.Message.Content, Model: oResp.Model, Done: oResp.Done}
 			if oResp.Done {
-				tok.Usage = &pm.Usage{CompletionTokens: oResp.EvalCount}
+				tok.Usage = &runtime.Usage{CompletionTokens: oResp.EvalCount}
 				tok.ToolCalls = parseOllamaToolCalls(oResp.Message.ToolCalls)
 			}
 			ch <- tok

@@ -12,6 +12,7 @@ import (
 	"time"
 
 	pm "github.com/openforge-ai/openforge/internal/pm"
+	"github.com/openforge-ai/openforge/runtime"
 )
 
 // OpenAICompatProvider wraps any OpenAI-compatible HTTP API endpoint.
@@ -43,19 +44,23 @@ func (p *OpenAICompatProvider) Status(ctx context.Context) (*pm.ProviderHealth, 
 	start := time.Now()
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, p.baseURL+"/v1/models", nil)
 	if err != nil {
-		return &pm.ProviderHealth{Status: pm.StatusError, Error: err.Error()}, nil
+		return pm.HealthError(err), nil
 	}
 	p.setAuth(req)
 	resp, err := p.client.Do(req)
 	if err != nil {
-		return &pm.ProviderHealth{Status: pm.StatusUnavailable, Error: err.Error()}, nil
+		return pm.HealthUnavailable(err.Error()), nil
 	}
 	defer resp.Body.Close()
 	latency := time.Since(start)
 	if resp.StatusCode != http.StatusOK {
-		return &pm.ProviderHealth{Status: pm.StatusError, Error: fmt.Sprintf("HTTP %d", resp.StatusCode), Latency: latency}, nil
+		h := pm.HealthError(fmt.Errorf("HTTP %d", resp.StatusCode))
+		h.Latency = latency
+		return h, nil
 	}
-	return &pm.ProviderHealth{Status: pm.StatusAvailable, Latency: latency}, nil
+	h := pm.HealthAvailable()
+	h.Latency = latency
+	return h, nil
 }
 
 // --- JSON helpers ---
@@ -136,7 +141,7 @@ func (p *OpenAICompatProvider) Chat(ctx context.Context, req *pm.ChatRequest) (*
 	}
 	cr := &pm.ChatResponse{Model: oResp.Model, Content: content, Provider: p.info.Type}
 	if oResp.Usage != nil {
-		cr.Usage = &pm.Usage{
+		cr.Usage = &runtime.Usage{
 			PromptTokens: oResp.Usage.PromptTokens, CompletionTokens: oResp.Usage.CompletionTokens,
 			TotalTokens: oResp.Usage.TotalTokens,
 		}
@@ -229,7 +234,7 @@ func (p *OpenAICompatProvider) Embed(ctx context.Context, req *pm.EmbedRequest) 
 	}
 	er := &pm.EmbedResponse{Model: oResp.Model, Embeddings: embeddings, Provider: p.info.Type}
 	if oResp.Usage != nil {
-		er.Usage = &pm.Usage{
+		er.Usage = &runtime.Usage{
 			PromptTokens: oResp.Usage.PromptTokens, CompletionTokens: oResp.Usage.CompletionTokens,
 			TotalTokens: oResp.Usage.TotalTokens,
 		}

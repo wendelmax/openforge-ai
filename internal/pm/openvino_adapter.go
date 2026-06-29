@@ -36,7 +36,7 @@ func (a *OpenVINOAdapter) Info() ProviderInfo { return a.info }
 func (a *OpenVINOAdapter) Status(ctx context.Context) (*ProviderHealth, error) {
 	devices, err := a.rt.ListDevices(ctx)
 	if err != nil {
-		return &ProviderHealth{Status: StatusError, Error: err.Error()}, nil
+		return HealthError(err), nil
 	}
 	availCount := 0
 	deviceNames := make([]string, 0)
@@ -47,9 +47,11 @@ func (a *OpenVINOAdapter) Status(ctx context.Context) (*ProviderHealth, error) {
 		}
 	}
 	if availCount == 0 {
-		return &ProviderHealth{Status: StatusUnavailable, Error: "no available devices"}, nil
+		return HealthUnavailable("no available devices"), nil
 	}
-	return &ProviderHealth{Status: StatusAvailable, Devices: deviceNames}, nil
+	h := HealthAvailable()
+	h.Devices = deviceNames
+	return h, nil
 }
 
 func (a *OpenVINOAdapter) Chat(ctx context.Context, req *ChatRequest) (*ChatResponse, error) {

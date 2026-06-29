@@ -68,7 +68,7 @@ func (pm *ProviderManager) Detect(ctx context.Context) (map[ProviderType]*Provid
 			defer wg.Done()
 			health, err := p.Status(ctx)
 			if err != nil {
-				health = &ProviderHealth{Status: StatusError, Error: err.Error()}
+				health = HealthError(err)
 			}
 			ch <- result{t, health}
 		}(pt, prov)

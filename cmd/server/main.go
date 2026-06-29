@@ -81,14 +81,14 @@ func main() {
 		Chain: []pm.ProviderType{pm.ProviderOpenVINO, pm.ProviderOllama},
 	})
 
-	prov, err := pman.ActiveProvider(ctx)
+	_, err = pman.ActiveProvider(ctx)
 	if err != nil {
 		slog.Error("no provider available", "error", err)
 		os.Exit(1)
 	}
 
 	eng := engine.New(rt)
-	srv := server.NewWithProvider(eng, cfg, prov)
+	srv := server.New(eng, cfg)
 
 	go func() {
 		sigCh := make(chan os.Signal, 1)
