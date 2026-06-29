@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
-	"os/signal"
-	"syscall"
 
 	"github.com/openforge-ai/openforge/internal/config"
 	"github.com/openforge-ai/openforge/internal/engine"
@@ -90,21 +88,15 @@ func main() {
 	eng := engine.New(rt)
 	srv := server.New(eng, cfg)
 
-	go func() {
-		sigCh := make(chan os.Signal, 1)
-		signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
-		<-sigCh
-		slog.Info("shutting down gracefully...")
+	cleanup := func() {
 		cancel()
 		mcpRegistry.CloseAll()
 		srv.Shutdown(ctx)
 		provider.Shutdown(ctx)
-	}()
+	}
 
 	addr := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port)
-	slog.Info("server started", "address", addr)
-
-	if err := srv.Start(addr); err != nil {
+	if err := srv.RunUntilSignal(ctx, addr, cleanup); err != nil {
 		slog.Error("server error", "error", err)
 		os.Exit(1)
 	}

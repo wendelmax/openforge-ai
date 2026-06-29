@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
-	"os/signal"
-	"syscall"
 
 	"github.com/openforge-ai/openforge/internal/config"
 	"github.com/openforge-ai/openforge/internal/engine"
@@ -94,19 +92,14 @@ Models are loaded from the configured model directory.`,
 		eng := engine.NewWithStore(provider.Runtime(), store)
 		srv := server.New(eng, cfg)
 
-		go func() {
-			sigCh := make(chan os.Signal, 1)
-			signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
-			<-sigCh
-			slog.Info("shutting down gracefully...")
-			cancel()
+		cleanup := func() {
 			srv.Shutdown(ctx)
 			provider.Shutdown(ctx)
-		}()
+		}
 
 		addr := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port)
 		slog.Info("server started", "address", addr, "device", cfg.Models.Device)
-		return srv.Start(addr)
+		return srv.RunUntilSignal(ctx, addr, cleanup)
 	},
 }
 
